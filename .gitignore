@@ -11,4 +11,5 @@ containers/bin
 .sconsign.dblite
 config.log
 *.a
+2M_reads_se.fastq
 
