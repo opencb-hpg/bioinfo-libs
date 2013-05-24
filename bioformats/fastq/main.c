@@ -11,7 +11,7 @@
 #include "fastq_filter.h"
 
 int main (int argc, char *argv[]) {
-
+  /*
 	if(!strcmp("count-lines", argv[1])) {
 		fastq_file_t *file = fastq_fopen(argv[2]);
 		array_list_t *reads = array_list_new(2000000, 1.8, COLLECTION_MODE_SYNCHRONIZED);
@@ -183,7 +183,7 @@ int main (int argc, char *argv[]) {
 		array_list_free(failed_reads, fastq_read_free);
 		fastq_fclose(file);
 	}
-
+  */
 	return 0;
 }
 
