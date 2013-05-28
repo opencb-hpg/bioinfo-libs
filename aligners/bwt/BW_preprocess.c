@@ -230,6 +230,7 @@ inline unsigned int ternary_quicksort_start(unsigned int *S, char *X, unsigned i
   ranges[0] = l - start + 1;
   ranges[1] = r - l - 1;
 
+/*
   //Init pivots for second pass
   start = r;
 
@@ -283,6 +284,97 @@ inline unsigned int ternary_quicksort_start(unsigned int *S, char *X, unsigned i
   } else {
     ranges[2] = l - start + 1;
     ranges[3] = r - l;
+  }
+
+  //Put ?$ on place
+  if (h==0) {
+    end++;
+    value=1;
+    int i;
+    for (i=0; i < X[S[end] + h]; i++) {
+      value += ranges[i];
+    }
+
+    end_pivot_pos=S[value];
+    end_pivot=X[S[value] + h];
+    S[value]=S[end];
+
+    for (; i <nA; i++) {
+      value += ranges[i];
+      start_pivot_pos = S[value];
+      S[value]=end_pivot_pos;
+      end_pivot_pos=start_pivot_pos;
+    }
+
+    ranges[end_pivot]++;
+
+  } else {
+
+    end_pivot=-1;
+
+  }
+
+  return end_pivot;
+*/
+  if (nA==4) {
+    //Init pivots for second pass
+    start = r;
+    
+    start_pivot_pos = S[start];
+    start_pivot = X[start_pivot_pos + h];
+
+    end_pivot_pos = S[end];
+    end_pivot = X[end_pivot_pos + h];
+    
+    l = start;
+    p = start+1;
+    r = end;
+    
+    while (p != r) {
+      
+      value = X[S[p] + h];
+      
+      if (value == end_pivot) { //Ternary quicksort (if = does nothing)
+	p++;
+      } else if (value > end_pivot)  {
+	S[r] = S[p];
+	r--;
+	S[p] = S[r];
+      } else {
+	S[l] = S[p];
+	l++;
+	S[p] = S[l];
+	p++;
+      }
+      
+    }
+
+    if (start_pivot < end_pivot) {
+      S[l] = start_pivot_pos;
+      S[r] = end_pivot_pos;
+      if (r < end  ) r++;
+    } else if (start_pivot > end_pivot) {
+      S[r] = start_pivot_pos;
+      S[l] = end_pivot_pos;
+      if (l > start) l--;
+    } else {
+      S[r] = start_pivot_pos;
+      S[l] = end_pivot_pos;
+      if (l > start) l--;
+      if (r < end  ) r++;
+    }
+
+    if (end_pivot==2) {
+      ranges[2] = r - l;
+      ranges[3] = end - r + 1;
+    } else {
+      ranges[2] = l - start + 1;
+      ranges[3] = r - l;
+    }
+
+  } else if (nA==3) {
+    ranges[2] = end - r + 1;
+  } else if (nA==2) {
   }
 
   //Put ?$ on place
@@ -619,8 +711,9 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
       }
 
       //printIntVector(L[r], ranges2[r]);
+      //printf("Ranges => %d != %d\n", L[r][0], (int) -ranges2[r]);
       if(L[r][0] != (int) -ranges2[r]) {
-        //printf("Ranges => %d != %d\n", L[r][0], (int) -ranges2[r]);
+	//printf("Ranges => %d != %d\n", L[r][0], (int) -ranges2[r]);
         end=1;
       }
 

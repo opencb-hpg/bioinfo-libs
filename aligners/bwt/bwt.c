@@ -608,6 +608,113 @@ void bwt_generate_index_files(char *ref_file, char *output_dir,
   free(Rcompi.vector);
 }
 
+//-----------------------------------------------------------------------------
+
+void bwt_generate_index_files_bs(char *ref_file, char *output_dir, 
+				 unsigned int s_ratio, char *bases) {
+
+  byte_vector X, B, Bi;
+  vector C, C1;
+  comp_vector S, Si, Scomp, Scompi;
+  comp_vector R, Ri, Rcomp, Rcompi;
+  comp_matrix O, Oi;
+
+  exome ex;
+
+  //initReplaceTable();
+  initReplaceTable_bs(bases);
+  saveNucleotide(bases, output_dir, "Nucleotides");
+
+  // Calculating BWT
+  calculateBWT(&B, &S, &X, 0, &ex, ref_file);
+
+  save_exome_file(&ex, output_dir);
+
+  saveCharVector(&X, output_dir, "X");
+  free(X.vector);
+
+  printUIntVector(S.vector, S.n);
+  printUIntVector(B.vector, B.n);
+
+  // Calculating prefix-trie matrices C and O
+  calculateC(&C, &C1, &B, 0);
+  calculateO(&O, &B);
+
+  printUIntVector(C.vector, C.n);
+  printUIntVector(C1.vector, C1.n);
+  printCompMatrix(O);
+
+  saveCharVector(&B, output_dir, "B");
+  free(B.vector);
+  saveUIntVector(&C, output_dir, "C");
+  free(C.vector);
+  saveUIntVector(&C1, output_dir, "C1");
+  free(C1.vector);
+  saveCompMatrix(&O, output_dir, "O");
+  freeCompMatrix(&O);
+
+  // Calculating R
+  calculateR(&S, &R);
+
+  printUIntVector(R.vector, R.n);
+
+  // Calculating Scomp Rcomp
+  calculateSRcomp(&S, &Scomp, s_ratio);
+  printUIntVector(Scomp.vector, Scomp.n);
+  calculateSRcomp(&R, &Rcomp, s_ratio);
+  printUIntVector(Rcomp.vector, Rcomp.n);
+
+
+  saveUIntCompVector(&S, output_dir, "S");
+  free(S.vector);
+  saveUIntCompVector(&R, output_dir, "R");
+  free(R.vector);
+  saveUIntCompVector(&Scomp, output_dir, "Scomp");
+  free(Scomp.vector);
+  saveUIntCompVector(&Rcomp, output_dir, "Rcomp");
+  free(Rcomp.vector);
+
+  //Calculating BWT of reverse reference
+  calculateBWT(&Bi, &Si, &X, 1, NULL, ref_file);
+
+  saveCharVector(&X, output_dir, "Xi");
+  free(X.vector);
+
+  printUIntVector(Bi.vector, Bi.n);
+  printUIntVector(Si.vector, Si.n);
+
+  //Calculating inverted prefix-trie matrix Oi
+  calculateO(&Oi, &Bi);
+
+  printCompMatrix(Oi);
+
+  saveCharVector(&Bi, output_dir, "Bi");
+  free(Bi.vector);
+
+  saveCompMatrix(&Oi, output_dir, "Oi");
+  freeCompMatrix(&Oi);
+
+  //Calculating Ri
+  calculateR(&Si, &Ri);
+
+  printUIntVector(Ri.vector, Ri.n);
+
+  // Calculating Scompi Rcompi
+  calculateSRcomp(&Si, &Scompi, s_ratio);
+  printUIntVector(Scompi.vector, Scompi.n);
+  calculateSRcomp(&Ri, &Rcompi, s_ratio);
+  printUIntVector(Rcompi.vector, Rcompi.n);
+
+  saveUIntCompVector(&Si, output_dir, "Si");
+  free(Si.vector);
+  saveUIntCompVector(&Ri, output_dir, "Ri");
+  free(Ri.vector);
+  saveUIntCompVector(&Scompi, output_dir, "Scompi");
+  free(Scompi.vector);
+  saveUIntCompVector(&Rcompi, output_dir, "Rcompi");
+  free(Rcompi.vector);
+
+}
 
 //-----------------------------------------------------------------------------
 // general functions
@@ -3297,6 +3404,48 @@ size_t bwt_find_cals_from_batch(fastq_batch_t *batch,
 
   return total_cals;
   
+}
+
+//-----------------------------------------------------------------------------
+
+void readNucleotide(char *nucleotide, const char *directory, const char *name) {
+  size_t err=0;
+  FILE *fp;
+
+  char path[500];
+  path[0]='\0';
+  strcat(path, directory);
+  strcat(path, "/");
+  strcat(path, name);
+  strcat(path, ".txt");
+
+  fp  = fopen(path,  "r");
+  checkFileOpen(fp, path);
+
+  fgets(nucleotide, 4, fp);
+
+  fclose(fp);
+}
+
+//-----------------------------------------------------------------------------
+
+void saveNucleotide(char *nucleotide, const char *directory, const char *name) {
+  size_t err=0;
+  FILE *fp;
+
+  char path[500];
+  path[0]='\0';
+  strcat(path, directory);
+  strcat(path, "/");
+  strcat(path, name);
+  strcat(path, ".txt");
+
+  fp  = fopen(path,  "w");
+  checkFileOpen(fp, path);
+
+  fputs(nucleotide, fp);
+
+  fclose(fp);
 }
 
 //-----------------------------------------------------------------------------

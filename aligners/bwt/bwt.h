@@ -163,6 +163,9 @@ typedef struct bwt_index {
   comp_vector S, Si;
   exome karyotype;
   char *dirname;
+  char nucleotides[5];
+  int table[128];
+  int rev_table[4];
 } bwt_index_t;
 
 bwt_index_t *bwt_index_new(const char *dirname);
@@ -171,6 +174,9 @@ void bwt_index_free(bwt_index_t *index);
 
 void bwt_generate_index_files(char *ref_file, char *output_dir, 
 			      unsigned int s_ratio);
+
+void bwt_generate_index_files_bs(char *ref_file, char *output_dir, 
+				 unsigned int s_ratio, char *bases);
 
 
 //-----------------------------------------------------------------------------
@@ -347,6 +353,10 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     size_t nchromosomes);
 
 //-----------------------------------------------------------------------------
+void initReplaceTable_bs(const char *str);
+
+void readNucleotide(char *nucleotide, const char *directory, const char *name);
+void saveNucleotide(char *nucleotide, const char *directory, const char *name);
 //-----------------------------------------------------------------------------
 
 #endif // BWT_H
