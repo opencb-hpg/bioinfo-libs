@@ -34,8 +34,9 @@
 #include <malloc.h>
 
 #include "commons/log.h"
+#include "commons/string_utils.h"
 
-#define nA              4
+//#define nA              4
 
 #define MAX_MISMATCHES  20
 
@@ -210,24 +211,23 @@
   printf("<< Finished %.0f usecs\n", (t2.tv_sec-t1.tv_sec)*1e6+(t2.tv_usec-t1.tv_usec)); \
   fflush(stdout);
 
-
 typedef struct {
 
   size_t siz;
 
-  unsigned int *desp[nA];
+  unsigned int *desp[4]; // nA
   size_t n_desp;
   size_t m_desp;
 
 #if   defined VECTOR_O_32BIT_COMPRESSION
 
-  unsigned int *count[nA];
+  unsigned int *count[4]; // nA
   size_t n_count;
   size_t m_count;
 
 #elif defined VECTOR_O_64BIT_COMPRESSION
 
-  unsigned long long *count[nA];
+  unsigned long long *count[4];  // nA
   size_t n_count;
   size_t m_count;
 
@@ -632,6 +632,7 @@ void saveCharVector(byte_vector *vector, const char *directory, const char *name
 void saveCompMatrix(comp_matrix *matrix, const char *directory, const char *name);
 
 void initReplaceTable();
+void initReplaceTable_bs(const char *str);
 
 char *replaceBases(char *uncoded, char *coded, size_t length);
 
