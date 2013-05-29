@@ -34,6 +34,13 @@ size_t bwt_map_exact_seed(char *seq, size_t seq_len,
 			  bwt_optarg_t *bwt_optarg,
 			  bwt_index_t *index,
 			  array_list_t *mapping_list);
+//------------------------------------------------------------------------------
+
+size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len, 
+			     size_t start, size_t end,
+			     bwt_optarg_t *bwt_optarg,
+			     bwt_index_t *index,
+			     array_list_t *mapping_list);
 
 //-----------------------------------------------------------------------------
 // inexact functions
@@ -1219,6 +1226,143 @@ size_t bwt_map_exact_seed(char *seq, size_t seq_len,
     }
     //stop_timer(t_start, t_end, time_search_seed);
   }
+  //  free(result_p);
+  /*
+  if (discard_seed) {
+    array_list_clear(mappings, region_bwt_free);
+  } else {
+    for (int i = num_mappings - 1; i >= 0; i--) {
+      region = array_list_remove_at(i, mappings);
+      array_list_insert(region, mapping_list);
+    }
+  }
+  */
+  array_list_free(mappings, NULL);
+
+  return num_mappings;  
+}
+//-----------------------------------------------------------------------------
+
+size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
+			      size_t seq_start, size_t seq_end,
+			      bwt_optarg_t *bwt_optarg, 
+			      bwt_index_t *index, 
+			      array_list_t *mapping_list) {
+  
+  //printf("Process New Seeds\n");
+
+  region_t *region;
+  size_t start = 0;
+  size_t end = seq_end - seq_start;
+  result result;
+  char *code_seq = &seq[seq_start];/*(char *)malloc(sizeof(char)*(seq_end - seq_start + 1)); //= &seq[seq_start];
+  memcpy(code_seq, &seq[seq_start], seq_end - seq_start);*/
+  //code_seq[seq_end - seq_start] = '\0';
+  
+  //size_t start = 0;
+  //size_t end = seq_end - seq_start;
+  size_t len = seq_end - seq_start;
+  size_t num_mappings = 0;
+  char plusminus[2] = "-+";
+  size_t idx, key, direction, error, pos;
+  results_list *r_list;
+  //  result *r;
+  size_t l_aux, k_aux;
+  alignment_t *alignment;
+  //  size_t len = strlen(seq);
+  //  size_t start = 0;
+  //  size_t end = len - 1;
+  size_t start_mapping;
+
+  size_t aux_seq_start, aux_seq_end;
+  array_list_t *mappings = array_list_new(bwt_optarg->filter_read_mappings, 1.25f, 
+						     COLLECTION_MODE_ASYNCHRONIZED);
+  int discard_seed = 0;
+  int actual_mappings = 0;
+  struct timeval t_start, t_end;
+
+  short int type = 1;
+  //for (short int type = 1; type >= 0; type--) {
+    result.k = 0;
+    result.l = index->h_O.siz - 2;
+    result.start = start;
+    result.end = end;
+    //if (type == 1) {
+      // strand +
+      result.pos = end;
+      aux_seq_start = seq_start;
+      aux_seq_end = seq_end;
+	
+      start_timer(t_start);
+      BWExactSearchBackward(code_seq, &index->h_C, &index->h_C1, &index->h_O, &result);
+      //BWExactSearchBackward(code_seq, start, end, &index->h_C, &index->h_C1, &index->h_O, result_p);
+      stop_timer(t_start, t_end, time_bwt_seed);
+    /*
+    } else {
+      // strand -
+      result.pos = start;
+      aux_seq_start = seq_end;
+      aux_seq_end = seq_start;
+      
+      start_timer(t_start);
+      BWExactSearchForward(code_seq, &index->h_rC, &index->h_rC1, &index->h_rO, &result);
+	//BWExactSearchForward(code_seq, start, end, &index->h_rC, &index->h_rC1, &index->h_rO, result_p);
+      stop_timer(t_start, t_end, time_bwt_seed);
+    }
+    */
+
+    //start_timer(t_start);
+
+    k_aux = result.k;
+    l_aux = result.l;
+    actual_mappings += (result.l - result.k + 1);
+
+    if (actual_mappings > 150) {//bwt_optarg->filter_seed_mappings) {
+      //discard_seed = 1;
+      //break;
+      k_aux = result.k;
+      l_aux = result.k + 10;
+
+    } else {
+	//printf("\tk=%d - l=%d\n", r->k, r->l);      
+      k_aux = result.k;
+      l_aux = result.l;
+    }
+      
+    for (size_t j = k_aux; j <= l_aux; j++) {
+      //if (index->S.ratio == 1) {
+      //	  key = index->S.vector[j];
+      //	} else {
+      key = getScompValue(j, &index->S, &index->h_C, &index->h_O);
+      //start_timer(t_start);
+      //key = getScompValueB(j, &index->S, &index->h_C, &index->h_O, &index->B);
+      //stop_timer(t_start, t_end, time_search_seed);
+      //	}
+      //printf("----> key value: %d\n", key);
+      
+      idx = binsearch(index->karyotype.offset, index->karyotype.size, key);
+      //printf("----> idx value: %d\n", idx);
+      //chromosome = index->karyotype.chromosome + (idx-1) * IDMAX;
+      
+      if (key + len <= index->karyotype.offset[idx]) {
+	//start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
+	/*printf("Strand:%c\tchromosome:%s\tStart:%u\tend:%u\n",plusminus[type],
+	  index->karyotype.chromosome + (idx-1) * IDMAX,
+	  start_mapping, start_mapping + len);
+	*/
+	start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
+	// save all into one alignment structure and insert to the list
+	region = region_bwt_new(idx, !type, start_mapping, start_mapping + len, aux_seq_start, aux_seq_end, seq_len);
+	
+	if (!array_list_insert((void*) region, mapping_list)){
+	  printf("Error to insert item into array list\n");
+	}
+	
+	num_mappings++;
+      }
+    }
+    //stop_timer(t_start, t_end, time_search_seed);
+  //}
   //  free(result_p);
   /*
   if (discard_seed) {
@@ -3043,6 +3187,63 @@ inline size_t seeding(char *code_seq, size_t seq_len, size_t num_seeds,
 
   return total_mappings;
 }
+//-----------------------------------------------------------------------------
+
+inline size_t seeding_bs(char *code_seq, size_t seq_len, size_t num_seeds,
+		      size_t seed_size, size_t min_seed_size,
+		      bwt_optarg_t *bwt_optarg, bwt_index_t *index,
+		      array_list_t *mapping_list) {
+
+  size_t n_seeds, total_mappings = 0, num_mappings = 0;
+  //  size_t offset, offset_inc, offset_end = seq_len - min_seed_size;
+  size_t start, end;
+  size_t offset = 0, offset_inc, offset_end = seq_len - min_seed_size;
+
+  n_seeds = num_seeds;
+  offset_inc = ceil(1.0f * seq_len / (num_seeds + 1));
+  if (offset_inc <= 0) offset_inc = 1;
+  /*
+  if (seed_size * num_seeds > seq_len) {
+    size_t max_seeds = seq_len - min_seed_size;
+    if (num_seeds >= max_seeds) {
+      n_seeds = max_seeds;
+      offset_inc = 1;
+    } else {
+      n_seeds = num_seeds;
+      offset_inc = seq_len / num_seeds;
+    }
+  } else {
+    n_seeds = num_seeds;
+    offset_inc = seq_len / num_seeds;
+  }
+  */
+
+  start = 0;
+  for (size_t i = 0; i < n_seeds; i++) {
+    end = start + seed_size;
+    if (end >= seq_len) end = seq_len;
+    num_mappings = bwt_map_exact_seed_bs(code_seq, seq_len, start, end - 1,
+				      bwt_optarg, index, mapping_list);
+    total_mappings += num_mappings;
+    //    LOG_DEBUG_F("\tseed %i\t[%i - %i], length read = %i, num. mappings = %i\n", 
+    //		i + 1, start, end, seq_len, num_mappings);
+    start += offset_inc;
+    if (start > offset_end) {
+      if (offset_inc == 1) break;
+      start = offset_inc / 2;
+    }
+    /*
+    if (start > offset_end) {
+      offset++;
+      start = offset;
+    }
+    */
+  }
+
+  //  LOG_DEBUG_F("\t\ttotal mappings = %i\n", total_mappings);
+
+  return total_mappings;
+}
 
 //-----------------------------------------------------------------------------
 
@@ -3058,6 +3259,40 @@ size_t bwt_map_exact_seeds_seq_by_num(char *seq, size_t num_seeds,
   replaceBases(seq, code_seq, seq_len);
 
   num_mappings = seeding(code_seq, seq_len, num_seeds, seed_size, min_seed_size,
+			 bwt_optarg, index, mapping_list);
+  //  printf("\tfirst, num_mappings = %d\n", num_mappings);
+  /*
+  if (num_mappings < 10) {
+    num_mappings += seeding(code_seq, seq_len, max_num_seeds, seed_size - 4, min_seed_size - 4,
+			    bwt_optarg, index, mapping_list);
+    //    printf("\tsecond -4, num_mappings (include first) = %d\n", num_mappings);
+    //  } else if (num_mappings >= 10000) {
+  } else if (num_mappings >= bwt_optarg->filter_read_mappings) {
+    array_list_clear(mapping_list, (void *) region_bwt_free);
+    num_mappings = seeding(code_seq, seq_len, max_num_seeds, seed_size + 2, min_seed_size + 2,
+			   bwt_optarg, index, mapping_list); 
+    //    printf("\tthird +2, num_mappings = %d\n", num_mappings);
+ }
+  */
+  free(code_seq);
+  return num_mappings;
+}
+
+//-----------------------------------------------------------------------------
+
+size_t bwt_map_exact_seeds_seq_by_num_bs(char *seq, size_t num_seeds, 
+				          size_t seed_size, size_t min_seed_size,
+				          bwt_optarg_t *bwt_optarg, bwt_index_t *index,
+				          array_list_t *mapping_list) {
+  size_t seq_len = strlen(seq);
+  size_t num_mappings = 0;
+
+  char *code_seq = (char *) calloc(seq_len, sizeof(char));
+
+  //replaceBases(seq, code_seq, seq_len);
+  bwt_encode_Bases(code_seq, seq, seq_len, &index->table);
+
+  num_mappings = seeding_bs(code_seq, seq_len, num_seeds, seed_size, min_seed_size,
 			 bwt_optarg, index, mapping_list);
   //  printf("\tfirst, num_mappings = %d\n", num_mappings);
   /*

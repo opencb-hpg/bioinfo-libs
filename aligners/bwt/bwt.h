@@ -268,6 +268,11 @@ size_t bwt_map_exact_seeds_seq_by_num(char *seq, size_t num_seeds,
 				      bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
 				      array_list_t *mapping_list);
 
+size_t bwt_map_exact_seeds_seq_by_num_bs(char *seq, size_t num_seeds,
+				          size_t seed_size, size_t min_seed_size,
+				          bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+				          array_list_t *mapping_list);
+
 //-----------------------------------------------------------------------------
 
 size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_size,
