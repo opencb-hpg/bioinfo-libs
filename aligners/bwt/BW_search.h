@@ -159,6 +159,7 @@ void BWExactSearchVectorBackward(char *W, int start, int end, size_t k, size_t l
 void BWExactSearchVectorForward(char *W, int start, int end, size_t k, size_t l, size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O);
 
 void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t *vec_ki, size_t *vec_li, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, results_list *r_list);
+void BWSearch1_bs(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t *vec_ki, size_t *vec_li, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, results_list *r_list);
 
 void BWSearch1CPU(char *W, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, result * res, results_list *r_list);
 
