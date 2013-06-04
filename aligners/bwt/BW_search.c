@@ -619,7 +619,7 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
 
 void BWSearch1_bs(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t *vec_ki, size_t *vec_li, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, results_list *r_list) {
 
-printf("Bwt 1\n");
+//printf("Bwt 1\n");
 
   BWiterationVariables();
 
@@ -636,7 +636,7 @@ printf("Bwt 1\n");
   init_result(&r, 0);
   bound_result(&r, start, end);
 
-printf("Bwt 2\n");
+//printf("Bwt 2\n");
 
   if (vec_k[0] <= vec_l[0]) {
     change_result(&r, vec_k[0], vec_l[0], -1);
@@ -645,7 +645,7 @@ printf("Bwt 2\n");
 
   add_mismatch(&r, MATCH, XXX, start);
 
-printf("Bwt 3\n");
+//printf("Bwt 3\n");
 
   results = vec_l[0] - vec_k[0];
 
@@ -667,14 +667,15 @@ printf("Bwt 3\n");
     modify_last_mismatch_3(&r, DELETION, XXX, start);
     add_result(&r, r_list);
 
-printf("Bwt 4\n");
+//printf("Bwt 4\n");
 
     for (size_t b=0;b<nA;b++) {
 
 printf("Bwt 40 %lu\n", b);
 
+      //printf("\tW -> %d, %d - %d\n", b, _k_aux, _l_aux);
       BWiteration(_k, _l, _k_aux, _l_aux, b, C, C1, O);
-      printf("W -> %d, %d - %d\n", b, _k_aux, _l_aux);
+      //printf("\tW -> %d, %d - %d\n", b, _k_aux, _l_aux);
 
       if (_k_aux > _l_aux) continue;
       //printf("*W -> %d, %d - %d\n", b, _k_aux, _l_aux);
@@ -687,13 +688,13 @@ printf("Bwt 40 %lu\n", b);
 	modify_last_mismatch_2(&r, MISMATCH, b);
 	add_result(&r, r_list);
       }
-printf("Bwt 41\n");
+//printf("Bwt 41\n");
 
 
       //Insertion
       BWiteration(_k_aux, _l_aux, _k_aux, _l_aux, b_w, C, C1, O);
 
-printf("Bwt 42\n");
+//printf("Bwt 42\n");
 
       if (_k_aux <= _l_aux) {
 	change_result(&r, _k_aux, _l_aux, -1);
@@ -701,11 +702,11 @@ printf("Bwt 42\n");
 	add_result(&r, r_list);
       }
 
-printf("Bwt 43\n");
+//printf("Bwt 43\n");
 
     }
 
-printf("Bwt 5\n");
+//printf("Bwt 5\n");
 
   }
 

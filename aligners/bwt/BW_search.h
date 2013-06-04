@@ -43,7 +43,12 @@
     (k_out) = (C1)->vector[aux_b] + getOcompValue(aux_b, (k_in)  , (O)); \
     (l_out) = (C)->vector[aux_b]  + getOcompValue(aux_b, (l_in)+1, (O)); \
   }
-//printf("k-> %lu, l-> %lu, O -> %u\n", k_out, l_out, getOcompValue(aux_b, (l_in)+1, (O)));
+//printf("\t->\tb-> %lu\n", aux_b); \
+//printf("\t->\tc1-> %lu\n", (C1)->vector[aux_b]); \
+//printf("\t->\taux_b-> %lu, k_in-> %lu, O -> %u\n", aux_b, (k_in)  , (O)); \
+//printf("\t->\tcomp-> %lu, \n", getOcompValue(aux_b, (k_in)  , (O))); \
+//printf("\t->\tk-> %lu, l-> %lu, O -> %u\n", k_out, l_out, getOcompValue(aux_b, (l_in)+1, (O))); \
+//printf("\t->\tk-> %lu, l-> %lu, O -> %u\n", k_out, l_out, getOcompValue(aux_b, (l_in)+1, (O))); \
 
 #else
 
@@ -53,7 +58,7 @@
     (k_out) = (C1)->vector[aux_b] + (O)->desp[aux_b][(k_in)];		\
     (l_out) = (C)->vector[aux_b]  + (O)->desp[aux_b][(l_in)+1];		\
   }
-//printf("k-> %lu, l-> %lu, O -> %u\n", k_out, l_out, (O)->desp[aux_b][(l_in)+1]);
+//printf("\t<-\tk-> %lu, l-> %lu, O -> %u\n", k_out, l_out, (O)->desp[aux_b][(l_in)+1]); \
 
 #endif
 

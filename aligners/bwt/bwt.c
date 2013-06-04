@@ -2018,7 +2018,7 @@ size_t bwt_map_inexact_seq_bs(char *seq,
 	  r_list.num_results = 0;
 	  r_list.read_index = 0;
 
-	  //    printf("*** bwt.c: calling BWSearch1 with type = %d...\n", type);
+	  printf("*** bwt.c: calling BWSearch1 with type = %d...\n", type);
 	  //if (type == 1) {
 
 	    BWSearch1_bs(code_seq, start, end, k1, l1, ki1, li1, 
