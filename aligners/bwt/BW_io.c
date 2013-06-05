@@ -41,7 +41,8 @@ void freeCompMatrix(comp_matrix *matrix) {
 }
 
 void reverseStrandC(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1) {
-
+/*
+ * Previous Version
   r_C->n  = s_C->n; r_C1->n = s_C1->n;
 
   r_C->vector   = (unsigned int*)malloc(r_C->n * sizeof(unsigned int));
@@ -53,11 +54,40 @@ void reverseStrandC(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1) {
   r_C->vector[3] = s_C->vector[0]; r_C1->vector[3] = s_C1->vector[0];
   r_C->vector[1] = s_C->vector[2]; r_C1->vector[1] = s_C1->vector[2];
   r_C->vector[2] = s_C->vector[1]; r_C1->vector[2] = s_C1->vector[1];
+*/
+
+  r_C->n  = s_C->n; r_C1->n = s_C1->n;
+
+  //printf("%d %d %d %d\n", AA, CC, GG, TT);
+
+  r_C->vector   = (unsigned int*)malloc(r_C->n * sizeof(unsigned int));
+  checkMalloc(r_C->vector,  "reverseStrandC");
+  r_C1->vector  = (unsigned int*)malloc(r_C1->n * sizeof(unsigned int));
+  checkMalloc(r_C1->vector,  "reverseStrandC");
+
+  if (AA != -1 && TT !=-1) {
+    r_C->vector[AA] = s_C->vector[TT]; r_C1->vector[AA] = s_C1->vector[TT];
+    r_C->vector[TT] = s_C->vector[AA]; r_C1->vector[TT] = s_C1->vector[AA];
+  } else if (AA != -1) {
+    r_C->vector[AA] = s_C->vector[AA]; r_C1->vector[AA] = s_C1->vector[AA];
+  } else if (TT != -1) {
+    r_C->vector[TT] = s_C->vector[TT]; r_C1->vector[TT] = s_C1->vector[TT];
+  }
+
+  if (CC != -1 && GG !=-1) {
+    r_C->vector[CC] = s_C->vector[GG]; r_C1->vector[CC] = s_C1->vector[GG];
+    r_C->vector[GG] = s_C->vector[CC]; r_C1->vector[GG] = s_C1->vector[CC];
+  } else if (CC != -1) {
+    r_C->vector[CC] = s_C->vector[CC]; r_C1->vector[CC] = s_C1->vector[CC];
+  } else if (GG != -1) {
+    r_C->vector[GG] = s_C->vector[GG]; r_C1->vector[GG] = s_C1->vector[GG];
+  }
 
 }
 
 void reverseStrandO(comp_matrix *r_O, comp_matrix *s_O) {
 
+/*
   r_O->siz = s_O->siz;
 
   r_O->n_desp = s_O->n_desp;
@@ -77,6 +107,55 @@ void reverseStrandO(comp_matrix *r_O, comp_matrix *s_O) {
   r_O->count[3] = s_O->count[0];
   r_O->count[1] = s_O->count[2];
   r_O->count[2] = s_O->count[1];
+
+#endif
+*/
+
+  r_O->siz = s_O->siz;
+
+  r_O->n_desp = s_O->n_desp;
+  r_O->m_desp = s_O->m_desp;
+
+  if (AA != -1 && TT !=-1) {
+    r_O->desp[AA] = s_O->desp[TT];
+    r_O->desp[TT] = s_O->desp[AA];
+  } else if (AA != -1) {
+    r_O->desp[AA] = s_O->desp[AA];
+  } else if (TT != -1) {
+    r_O->desp[TT] = s_O->desp[TT];
+  }
+
+  if (CC != -1 && GG !=-1) {
+    r_O->desp[CC] = s_O->desp[GG];
+    r_O->desp[GG] = s_O->desp[CC];
+  } else if (CC != -1) {
+    r_O->desp[CC] = s_O->desp[CC];
+  } else if (GG != -1) {
+    r_O->desp[GG] = s_O->desp[GG];
+  }
+
+#if defined VECTOR_O_32BIT_COMPRESSION || VECTOR_O_64BIT_COMPRESSION
+
+  r_O->n_count = s_O->n_count;
+  r_O->m_count = s_O->m_count;
+
+  if (AA != -1 && TT !=-1) {
+    r_O->count[AA] = s_O->count[TT];
+    r_O->count[TT] = s_O->count[AA];
+  } else if (AA != -1) {
+    r_O->count[AA] = s_O->count[AA];
+  } else if (TT != -1) {
+    r_O->count[TT] = s_O->count[TT];
+  }
+
+  if (CC != -1 && GG !=-1) {
+    r_O->count[CC] = s_O->count[GG];
+    r_O->count[GG] = s_O->count[CC];
+  } else if (CC != -1) {
+    r_O->count[CC] = s_O->count[CC];
+  } else if (GG != -1) {
+    r_O->count[GG] = s_O->count[GG];
+  }
 
 #endif
 
@@ -293,6 +372,7 @@ void saveUIntCompVector(comp_vector *vector, const char *directory, const char *
 
   size_t err=0;
   FILE *fp;
+
   char path[500];
 
   path[0]='\0';
@@ -484,7 +564,8 @@ int nextFASTAToken(FILE *queries_file, char *uncoded, char *coded, unsigned int 
 
   if (*nquery) {
 
-    replaceBases(uncoded, coded, *nquery);
+    //replaceBases(uncoded, coded, *nquery);
+    encodeBases(coded, uncoded, *nquery);
 
     if (compressed != NULL)
       *ncompress = comp4basesInChar(coded, *nquery, compressed);
@@ -658,7 +739,8 @@ void load_reference(byte_vector *X, int duplicate, exome *ex, const char *path) 
     ex->size++;
   }
 
-  replaceBases(X->vector, X->vector, total_length);
+  //replaceBases(X->vector, X->vector, total_length);
+  encodeBases(X->vector, X->vector, total_length);
 
   X->vector[total_length] = DDD;
   X->n = total_length;
