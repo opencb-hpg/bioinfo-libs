@@ -623,7 +623,7 @@ void bwt_generate_index_files_bs(char *ref_file, char *output_dir,
 
   //initReplaceTable();
   initReplaceTable_bs(bases);
-  saveNucleotide(bases, output_dir, "Nucleotides");
+  saveNucleotide(bases, output_dir, "Nucleotide");
 
   // Calculating BWT
   calculateBWT(&B, &S, &X, 0, &ex, ref_file);
