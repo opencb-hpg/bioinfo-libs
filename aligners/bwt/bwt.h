@@ -163,6 +163,9 @@ typedef struct bwt_index {
   comp_vector S, Si;
   exome karyotype;
   char *dirname;
+  char nucleotides[5];
+  int table[128];
+  int rev_table[4];
 } bwt_index_t;
 
 bwt_index_t *bwt_index_new(const char *dirname);
@@ -171,6 +174,9 @@ void bwt_index_free(bwt_index_t *index);
 
 void bwt_generate_index_files(char *ref_file, char *output_dir, 
 			      unsigned int s_ratio);
+
+void bwt_generate_index_files_bs(char *ref_file, char *output_dir, 
+				 unsigned int s_ratio, char *bases);
 
 
 //-----------------------------------------------------------------------------
@@ -262,6 +268,11 @@ size_t bwt_map_exact_seeds_seq_by_num(char *seq, size_t num_seeds,
 				      bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
 				      array_list_t *mapping_list);
 
+size_t bwt_map_exact_seeds_seq_by_num_bs(char *seq, size_t num_seeds,
+				          size_t seed_size, size_t min_seed_size,
+				          bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+				          array_list_t *mapping_list);
+
 //-----------------------------------------------------------------------------
 
 size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_size,
@@ -320,6 +331,13 @@ size_t bwt_generate_cal_list_linkedlist(array_list_t *mapping_list,
 					array_list_t *cal_list);
 
 
+size_t bwt_generate_cal_list_linkedlist_bs(array_list_t *mapping_list,
+					   cal_optarg_t *cal_optarg,
+					   size_t *min_seeds, size_t *max_seeds,
+					   size_t nchromosomes,
+					   array_list_t *cal_list);
+
+
 size_t bwt_generate_cal_list_linked_list_rna(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     size_t *min_seeds, size_t *max_seeds,
@@ -340,6 +358,13 @@ void bwt_map_inexact_array_list_by_filter(array_list_t *reads,
 					  size_t *num_unmapped, 
 					  size_t *unmapped_indices);
 
+void bwt_map_inexact_array_list_by_filter_bs(array_list_t *reads,
+					  bwt_optarg_t *bwt_optarg, 
+					  bwt_index_t *index,
+					  array_list_t **lists,
+					  size_t *num_unmapped, 
+					  size_t *unmapped_indices);
+
 size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     array_list_t *cal_list,
@@ -347,6 +372,33 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     size_t nchromosomes);
 
 //-----------------------------------------------------------------------------
+void initReplaceTable_bs(const char *str);
+void bwt_init_replace_table(const char *str, int *table, int *rev_table);
+
+/**
+ *  @brief Encodes a sequence of plain nucleotides
+ *  @param dest pointer to destination char with encoded nucleotides
+ *  @param src pointer to char with plain nucleotides
+ *  @param length length of the nucleotide sequence
+ *  @return pointer to char
+ *
+ *  Encodes a sequence of plain nucleotides
+ */
+char* bwt_encode_Bases(char *dest, char* src, unsigned int length, int *table);
+
+/**
+ *  @brief Decodes a sequence of encoded nucleotides
+ *  @param dest pointer to destination char with plain nucleotides
+ *  @param src pointer to char with encoded nucleotides
+ *  @param length length of the nucleotide sequence
+ *  @return pointer to char
+ *
+ *  Decodes a sequence of encoded nucleotides
+ */
+char* bwt_decode_Bases(char *dest, char* src, unsigned int length, int *rev_table);
+
+void readNucleotide(char *nucleotide, const char *directory, const char *name);
+void saveNucleotide(char *nucleotide, const char *directory, const char *name);
 //-----------------------------------------------------------------------------
 
 #endif // BWT_H

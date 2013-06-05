@@ -617,6 +617,249 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
 
 }
 
+void BWSearch1_bs(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t *vec_ki, size_t *vec_li, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, results_list *r_list) {
+
+//printf("Bwt 1\n");
+
+  BWiterationVariables();
+
+  size_t _k, _l, _ki, _li, _k_aux, _l_aux, _ki_aux, _li_aux;
+  size_t results, results_last;
+
+  unsigned int i, j, half, n;
+
+  result r;
+
+  n = end - start;
+  half = n / 2;
+
+  init_result(&r, 0);
+  bound_result(&r, start, end);
+
+//printf("Bwt 2\n");
+
+  if (vec_k[0] <= vec_l[0]) {
+    change_result(&r, vec_k[0], vec_l[0], -1);
+    add_result(&r, r_list);
+  }
+
+  add_mismatch(&r, MATCH, XXX, start);
+
+//printf("Bwt 3\n");
+
+  results = vec_l[0] - vec_k[0];
+
+  results_last = results;
+  _k  = vec_k[1];
+  _l  = vec_l[1];
+  results = _l  - _k;
+
+  //printf("B -> %d: %d -> %d, %u, %u\n", 0, results, results_last, _k, _l);
+
+  if (results != results_last) {
+
+    //printf("*B -> %d: %d -> %d, %u, %u\n", 0, results, results_last, _k, _l);
+
+    //printf("%d: %d -> %d\n", 0, results, results_last);
+
+    //Deletion
+    change_result(&r, _k, _l, -1);
+    modify_last_mismatch_3(&r, DELETION, XXX, start);
+    add_result(&r, r_list);
+
+//printf("Bwt 4\n");
+
+    for (size_t b=0;b<nA;b++) {
+
+printf("Bwt 40 %lu\n", b);
+
+      //printf("\tW -> %d, %d - %d\n", b, _k_aux, _l_aux);
+      BWiteration(_k, _l, _k_aux, _l_aux, b, C, C1, O);
+      //printf("\tW -> %d, %d - %d\n", b, _k_aux, _l_aux);
+
+      if (_k_aux > _l_aux) continue;
+      //printf("*W -> %d, %d - %d\n", b, _k_aux, _l_aux);
+
+      size_t b_w = (size_t) W[start];
+
+      //Missmatch
+      if (b!=b_w) {
+	change_result(&r, _k_aux, _l_aux, -1);
+	modify_last_mismatch_2(&r, MISMATCH, b);
+	add_result(&r, r_list);
+      }
+//printf("Bwt 41\n");
+
+
+      //Insertion
+      BWiteration(_k_aux, _l_aux, _k_aux, _l_aux, b_w, C, C1, O);
+
+//printf("Bwt 42\n");
+
+      if (_k_aux <= _l_aux) {
+	change_result(&r, _k_aux, _l_aux, -1);
+	modify_last_mismatch_3(&r, 3, INSERTION, b);
+	add_result(&r, r_list);
+      }
+
+//printf("Bwt 43\n");
+
+    }
+
+//printf("Bwt 5\n");
+
+  }
+
+  for (i=start+2, j=2; j<=half; i++, j++) {
+
+    results_last = results;
+    _k = vec_k[j];
+    _l = vec_l[j];
+    results = _l  - _k;
+
+    //printf("B -> %d: %d -> %d, %u, %u\n", j-1, results, results_last, _k, _l);
+
+    if (results == results_last) continue;
+
+    //printf("*B -> %d: %d -> %d, %u, %u\n", j-1, results, results_last, _k, _l);
+
+    //Deletion
+    change_result(&r, _k, _l, i-2);
+    modify_last_mismatch_3(&r, DELETION, XXX, i-1);
+    BWExactSearchBackward(W, C, C1, O, &r);
+    if (r.k<=r.l) add_result(&r, r_list);
+
+    for (size_t b=0;b<nA;b++) {
+
+      BWiteration(_k, _l, _k_aux, _l_aux, b, C, C1, O);
+
+      if (_k_aux > _l_aux) continue;
+
+      //Insertion
+      change_result(&r, _k_aux, _l_aux, i-1);
+      modify_last_mismatch_2(&r, INSERTION, b);
+      BWExactSearchBackward(W, C, C1, O, &r);
+      if (r.k<=r.l) add_result(&r, r_list);
+
+      //Mismatch
+      if (b!=(size_t)W[i-1]) {
+	change_result(&r, _k_aux, _l_aux, i-2);
+	modify_last_mismatch_1(&r, MISMATCH);
+	BWExactSearchBackward(W, C, C1, O, &r);
+	if (r.k<=r.l) add_result(&r, r_list);
+      }
+
+    }
+
+printf("Bwt 6\n");
+
+  }
+
+  //printf("\n");
+
+  //TODO: Gestionar bien los errores de la busqueda al revés con Si y restas (precalcular Si con |X| - pos)
+  half--;
+  results = vec_li[n] - vec_ki[n];
+
+  r.dir=1; //Change direction
+
+  results_last = results;
+  _ki  = vec_ki[n-1];
+  _li  = vec_li[n-1];
+  results = _li - _ki;
+
+  //printf("F-> %d: %d -> %d, %u, %u\n", n, results, results_last, _ki, _li);
+
+  if (results != results_last) {
+
+    //printf("*F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
+
+    //Deletion
+    change_result(&r, _ki, _li, -1);
+    modify_last_mismatch_3(&r, DELETION, XXX, end);
+    add_result(&r, r_list);
+
+    for (size_t b=0;b<nA;b++) {
+
+      BWiteration(_ki, _li, _ki_aux, _li_aux, b, C, C1, Oi);
+
+      if (_ki_aux > _li_aux) continue;
+
+      size_t b_w = (size_t) W[end];
+
+      //Mismatch
+      if (b!=b_w) {
+	change_result(&r, _ki_aux, _li_aux, -1);
+	modify_last_mismatch_2(&r, MISMATCH, b);
+	add_result(&r, r_list);
+      }
+
+      //Insertion
+      BWiteration(_ki_aux, _li_aux, _ki_aux, _li_aux, b_w, C, C1, Oi);
+
+      //printf("\tI -> %d - %d\n", _ki_aux, _li_aux);
+
+      if (_ki_aux <= _li_aux){
+	change_result(&r, _ki_aux, _li_aux, -1);
+	modify_last_mismatch_2(&r, INSERTION, b);
+	add_result(&r, r_list);
+      }
+
+    }
+
+  }
+
+  for(i=end-2,j=n-2; j>=half; i--, j--) {
+
+    results_last = results;
+    _ki  = vec_ki[j];
+    _li  = vec_li[j];
+    results = _li - _ki;
+
+    //printf("F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
+
+    if (results == results_last) continue;
+
+    //printf("*F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
+
+    //TODO: Anadir contador para podar cuando se que ya he encontrado las cadenas que permite la variabilidad en este simbolo.
+
+    //Deletion
+    change_result(&r, _ki, _li, i+2);
+    modify_last_mismatch_3(&r, DELETION, XXX, i+1);
+    BWExactSearchForward(W, C, C1, Oi, &r);
+    if (r.k<=r.l) add_result(&r, r_list);
+
+    for (size_t b=0;b<nA;b++) {
+
+      BWiteration(_ki, _li, _ki_aux, _li_aux, b, C, C1, Oi);
+
+      //printf("W -> %d, %d - %d\n", b, _ki_aux, _li_aux);
+
+      if (_ki_aux > _li_aux) continue;
+
+      //Insertion
+      change_result(&r, _ki_aux, _li_aux, i+1);
+      modify_last_mismatch_2(&r, INSERTION, b);
+      BWExactSearchForward(W, C, C1, Oi, &r);
+      if (r.k<=r.l) add_result(&r, r_list);
+
+      //Mismatch
+      if (b!= (size_t) W[i+1]) {
+	change_result(&r, _ki_aux, _li_aux, i+2);
+	modify_last_mismatch_1(&r, MISMATCH);
+	BWExactSearchForward(W, C, C1, Oi, &r);
+	if (r.k<=r.l) add_result(&r, r_list);
+      }
+
+    }
+
+  }
+
+  //printf("\n");
+
+}
+
 void BWSearch1CPU(char *W, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, result *res, results_list *r_list) {
 
   unsigned int half, n;
