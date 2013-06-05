@@ -635,7 +635,7 @@ void bwt_generate_index_files_bs(char *ref_file, char *output_dir,
 
   //initReplaceTable();
   initReplaceTable_bs(bases);
-  saveNucleotide(bases, output_dir, "Nucleotides");
+  saveNucleotide(bases, output_dir, "Nucleotide");
 
   // Calculating BWT
   calculateBWT(&B, &S, &X, 0, &ex, ref_file);
@@ -2021,7 +2021,9 @@ size_t bwt_map_inexact_seq_bs(char *seq,
 	  printf("*** bwt.c: calling BWSearch1 with type = %d...\n", type);
 	  //if (type == 1) {
 
-	    BWSearch1_bs(code_seq, start, end, k1, l1, ki1, li1, 
+	  //BWSearch1_bs(code_seq, start, end, k1, l1, ki1, li1, 
+	  //		 &index->h_C, &index->h_C1, &index->h_O, &index->h_Oi, &r_list);
+	    BWSearch1(code_seq, start, end, k1, l1, ki1, li1, 
 			 &index->h_C, &index->h_C1, &index->h_O, &index->h_Oi, &r_list);
     printf("Bwt 10\n");
 

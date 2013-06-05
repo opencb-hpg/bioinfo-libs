@@ -18,8 +18,6 @@ typedef struct region {
     size_t start_position;
     size_t end_position;
     char *chromosome;
-    char *strand;
-    char *type;
 } region_t;
 
 typedef struct {
@@ -27,7 +25,7 @@ typedef struct {
     size_t length;
 } chromosome_ws_response;
 
-region_t *region_new(char *chromosome, size_t start_position, size_t end_position, char *strand, char *type);
+region_t *region_new(char *chromosome, uint32_t start_position, uint32_t end_position);
 
 void region_free(region_t *region);
 
