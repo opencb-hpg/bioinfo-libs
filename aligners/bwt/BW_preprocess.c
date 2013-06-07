@@ -85,9 +85,9 @@ void calculateBWTdebug(byte_vector *B, comp_vector *S, byte_vector *X, int rever
   S->ratio = 1;
 
   B->vector  = ( char *) malloc(B->n * sizeof(char));
-  checkMalloc(B->vector, "calculateBWT");
+  checkMalloc(B->vector, "calculateBWTdebug");
   S->vector  = ( unsigned int *) malloc(S->n * sizeof(unsigned int));
-  checkMalloc(S->vector, "calculateBWT");
+  checkMalloc(S->vector, "calculateBWTdebug");
 
   BW_aux  = X->vector;
 
@@ -230,59 +230,65 @@ inline unsigned int ternary_quicksort_start(unsigned int *S, char *X, unsigned i
   ranges[0] = l - start + 1;
   ranges[1] = r - l - 1;
 
-  //Init pivots for second pass
-  start = r;
-
-  start_pivot_pos = S[start];
-  start_pivot = X[start_pivot_pos + h];
-
-  end_pivot_pos = S[end];
-  end_pivot = X[end_pivot_pos + h];
-
-  l = start;
-  p = start+1;
-  r = end;
-
-  while (p != r) {
-
-    value = X[S[p] + h];
+  if (nA==4) {
+    //Init pivots for second pass
+    start = r;
     
-    if (value == end_pivot) { //Ternary quicksort (if = does nothing)
-      p++;
-    } else if (value > end_pivot)  {
-      S[r] = S[p];
-      r--;
-      S[p] = S[r];
-    } else {
-      S[l] = S[p];
-      l++;
-      S[p] = S[l];
-      p++;
+    start_pivot_pos = S[start];
+    start_pivot = X[start_pivot_pos + h];
+
+    end_pivot_pos = S[end];
+    end_pivot = X[end_pivot_pos + h];
+    
+    l = start;
+    p = start+1;
+    r = end;
+    
+    while (p != r) {
+      
+      value = X[S[p] + h];
+      
+      if (value == end_pivot) { //Ternary quicksort (if = does nothing)
+	p++;
+      } else if (value > end_pivot)  {
+	S[r] = S[p];
+	r--;
+	S[p] = S[r];
+      } else {
+	S[l] = S[p];
+	l++;
+	S[p] = S[l];
+	p++;
+      }
+      
     }
-    
-  }
 
-  if (start_pivot < end_pivot) {
-    S[l] = start_pivot_pos;
-    S[r] = end_pivot_pos;
-    if (r < end  ) r++;
-  } else if (start_pivot > end_pivot) {
-    S[r] = start_pivot_pos;
-    S[l] = end_pivot_pos;
-    if (l > start) l--;
-  } else {
-    S[r] = start_pivot_pos;
-    S[l] = end_pivot_pos;
-    if (l > start) l--;
-    if (r < end  ) r++;
-  }
+    if (start_pivot < end_pivot) {
+      S[l] = start_pivot_pos;
+      S[r] = end_pivot_pos;
+      if (r < end  ) r++;
+    } else if (start_pivot > end_pivot) {
+      S[r] = start_pivot_pos;
+      S[l] = end_pivot_pos;
+      if (l > start) l--;
+    } else {
+      S[r] = start_pivot_pos;
+      S[l] = end_pivot_pos;
+      if (l > start) l--;
+      if (r < end  ) r++;
+    }
 
-  if (end_pivot==2) {
-    ranges[2] = r - l;
-    ranges[3] = end - r + 1;
-  } else {
-    ranges[2] = l - start + 1;
-    ranges[3] = r - l;
+    if (end_pivot==2) {
+      ranges[2] = r - l;
+      ranges[3] = end - r + 1;
+    } else {
+      ranges[2] = l - start + 1;
+      ranges[3] = r - l;
+    }
+
+  } else if (nA==3) {
+    ranges[2] = end - r + 1;
+  } else if (nA==2) {
   }
 
   //Put ?$ on place
@@ -407,10 +413,10 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
 
   vector V;
   int **L;
-  unsigned int ranges[4];
-  unsigned int offsets[4];
-  unsigned int ranges2[16];
-  unsigned int offsets2[16];
+  unsigned int ranges[nA];
+  unsigned int offsets[nA];
+  unsigned int ranges2[nA*nA];
+  unsigned int offsets2[nA*nA];
 
   load_reference(X, 1, NULL, reference);
 
@@ -431,14 +437,14 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
   printUIntVector(S->vector, S->n);
 
   size_t h = 0;
-  unsigned int dollar;
+  int dollar;
 
   printf("**** Suborden: %lu ****\n", h);
   fflush(stdout);
 
   dollar = ternary_quicksort_start(S->vector, X->vector, ranges, 0, S->n-1, h);
 
-  for (unsigned int i=0, group=1; i < nA; i++) {
+  for (int i=0, group=1; i < nA; i++) {
     offsets[i] = group;
     group += ranges[i];
   }
@@ -455,7 +461,7 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
   L = (int**) malloc(nA * nA * sizeof(int*));
 
 #pragma omp parallel for
-  for (unsigned int r=0; r < nA; r++) {
+  for (int r=0; r < nA; r++) {
 
     if (r==dollar) // Manage ?$
       ternary_quicksort_start(S->vector + offsets[r] + 1, X->vector, ranges2 + nA*r, 0, ranges[r]-2, h);
@@ -463,9 +469,9 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
       ternary_quicksort_start(S->vector + offsets[r]    , X->vector, ranges2 + nA*r, 0, ranges[r]-1, h);
 
     //Initialize L vectors
-
+    
     unsigned int aux_desp;
-    for (unsigned int j=0; j < nA; j++) {
+    for (int j=0; j < nA; j++) {
 
       aux_desp=0;
       if(r==0 && j==0)      aux_desp++;
@@ -483,7 +489,7 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
 
   }
 
-  for (unsigned int i=0, group=0; i < nA * nA; i++) {
+  for (int i=0, group=0; i < nA * nA; i++) {
     offsets2[i] = group;
     group += ranges2[i];
   }
@@ -495,8 +501,8 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
 
   printUIntVector(S->vector, S->n);
 
-  printUIntVector(ranges2, 16);
-  printUIntVector(offsets2, 16);
+  printUIntVector(ranges2, nA*nA);
+  printUIntVector(offsets2, nA*nA);
 
   int end;
 
@@ -509,7 +515,7 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
     fflush(stdout);
 
 #pragma omp parallel for
-    for(unsigned int r = 0; r < nA*nA; r++) {
+    for(int r = 0; r < nA*nA; r++) {
 
       unsigned int offset=offsets2[r], offset_last;
       for(unsigned int i = 0; i<ranges2[r]; i += abs(L[r][i])) {
@@ -532,7 +538,7 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
     printUIntVector(V.vector, V.n);
 
 #pragma omp parallel for
-    for(unsigned int r = 0; r < nA*nA; r++) {
+    for(int r = 0; r < nA*nA; r++) {
 
       int pos_neg=-1, pos_pos=-1;
       unsigned int pos_size=0;
@@ -644,7 +650,7 @@ void calculateBWT(byte_vector *B, comp_vector *S, byte_vector *X, int reverse, e
 
   size_t nBlast = B->n - 1;
 
-#pragma omp parallel for //TODO: Comprobar si va bien aqui
+#pragma omp parallel for //TODO: Comprobar si va bien aqui OpenMP
   for(size_t i=0; i<B->n; i++)
     B->vector[i] = X->vector[S->vector[i] + nBlast];
 
@@ -686,7 +692,7 @@ void calculateR(comp_vector *S, comp_vector *R) {
 
 }
 
-void calculateC(vector *C, vector *C1, byte_vector *B, size_t offset) { //TODO: Esto esta mal, demasiados incrementos, hacer uno y sumar al final
+void calculateC(vector *C, vector *C1, byte_vector *B, size_t offset) {
 
   size_t i;
 
@@ -784,7 +790,7 @@ void calculateO(comp_matrix *O, byte_vector *B) {
   O->n_count = nA;
   O->m_count = O->m_desp;
 
-  //#pragma omp parallel for
+#pragma omp parallel for
   for (size_t i=0; i<O->n_count; i++) {
 
     O->desp[i]  = (unsigned int *) malloc(O->m_desp * sizeof(unsigned int));
@@ -816,8 +822,6 @@ void calculateO(comp_matrix *O, byte_vector *B) {
       }
 
     }
-
-    printf("\n");
 
   }
 

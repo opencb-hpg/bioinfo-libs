@@ -157,20 +157,27 @@ void bwt_optarg_free(bwt_optarg_t *optarg);
 //-----------------------------------------------------------------------------
 
 typedef struct bwt_index {
+  char *dirname;
+  char *nucleotides;
   comp_matrix h_O, h_rO, h_Oi, h_rOi;
   vector h_C, h_rC, h_C1, h_rC1;
   byte_vector B;
   comp_vector S, Si;
   exome karyotype;
-  char *dirname;
+  int table[128];
+  int rev_table[4];
 } bwt_index_t;
 
 bwt_index_t *bwt_index_new(const char *dirname);
+//void bwt_index_new(const char *dirname, bwt_index_t **index);
 void bwt_index_free(bwt_index_t *index);
 
 
 void bwt_generate_index_files(char *ref_file, char *output_dir, 
 			      unsigned int s_ratio);
+
+void bwt_generate_index_files_bs(char *ref_file, char *output_dir, 
+				 unsigned int s_ratio, char *bases);
 
 
 //-----------------------------------------------------------------------------
@@ -262,6 +269,11 @@ size_t bwt_map_exact_seeds_seq_by_num(char *seq, size_t num_seeds,
 				      bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
 				      array_list_t *mapping_list);
 
+size_t bwt_map_exact_seeds_seq_by_num_bs(char *seq, size_t num_seeds,
+					 size_t seed_size, size_t min_seed_size,
+					 bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+					 array_list_t *mapping_list);
+
 //-----------------------------------------------------------------------------
 
 size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_size,
@@ -340,6 +352,13 @@ void bwt_map_inexact_array_list_by_filter(array_list_t *reads,
 					  size_t *num_unmapped, 
 					  size_t *unmapped_indices);
 
+void bwt_map_inexact_array_list_by_filter_bs(array_list_t *reads,
+					     bwt_optarg_t *bwt_optarg, 
+					     bwt_index_t *index,
+					     array_list_t **lists,
+					     size_t *num_unmapped, 
+					     size_t *unmapped_indices);
+
 size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     array_list_t *cal_list,
@@ -347,6 +366,10 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     size_t nchromosomes);
 
 //-----------------------------------------------------------------------------
+void initReplaceTable_bs(const char *str);
+
+char * readNucleotide(const char *directory, const char *name);
+void saveNucleotide(char *nucleotide, const char *directory, const char *name);
 //-----------------------------------------------------------------------------
 
 #endif // BWT_H

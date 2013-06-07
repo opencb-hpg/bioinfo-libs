@@ -31,7 +31,7 @@ char plusminus[] = "-+";
 
 void freeCompMatrix(comp_matrix *matrix) {
 
-  for (size_t i=0; i<matrix->n_desp; i++) {
+for (size_t i=0; i<matrix->n_desp; i++) {
     free(matrix->desp[i]);
 #if defined VECTOR_O_32BIT_COMPRESSION || VECTOR_O_64BIT_COMPRESSION
     free(matrix->count[i]);
@@ -40,19 +40,36 @@ void freeCompMatrix(comp_matrix *matrix) {
 
 }
 
+//TODO: Arreglar para mapear el complementario reverso cuando trabajo con
+//el análisis con menos de 4 bases.
 void reverseStrandC(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1) {
 
   r_C->n  = s_C->n; r_C1->n = s_C1->n;
+
+  //printf("%d %d %d %d\n", AA, CC, GG, TT);
 
   r_C->vector   = (unsigned int*)malloc(r_C->n * sizeof(unsigned int));
   checkMalloc(r_C->vector,  "reverseStrandC");
   r_C1->vector  = (unsigned int*)malloc(r_C1->n * sizeof(unsigned int));
   checkMalloc(r_C1->vector,  "reverseStrandC");
 
-  r_C->vector[0] = s_C->vector[3]; r_C1->vector[0] = s_C1->vector[3];
-  r_C->vector[3] = s_C->vector[0]; r_C1->vector[3] = s_C1->vector[0];
-  r_C->vector[1] = s_C->vector[2]; r_C1->vector[1] = s_C1->vector[2];
-  r_C->vector[2] = s_C->vector[1]; r_C1->vector[2] = s_C1->vector[1];
+  if (AA != -1 && TT !=-1) {
+    r_C->vector[AA] = s_C->vector[TT]; r_C1->vector[AA] = s_C1->vector[TT];
+    r_C->vector[TT] = s_C->vector[AA]; r_C1->vector[TT] = s_C1->vector[AA];
+  } else if (AA != -1) {
+    r_C->vector[AA] = s_C->vector[AA]; r_C1->vector[AA] = s_C1->vector[AA];
+  } else if (TT != -1) {
+    r_C->vector[TT] = s_C->vector[TT]; r_C1->vector[TT] = s_C1->vector[TT];
+  }
+
+  if (CC != -1 && GG !=-1) {
+    r_C->vector[CC] = s_C->vector[GG]; r_C1->vector[CC] = s_C1->vector[GG];
+    r_C->vector[GG] = s_C->vector[CC]; r_C1->vector[GG] = s_C1->vector[CC];
+  } else if (CC != -1) {
+    r_C->vector[CC] = s_C->vector[CC]; r_C1->vector[CC] = s_C1->vector[CC];
+  } else if (GG != -1) {
+    r_C->vector[GG] = s_C->vector[GG]; r_C1->vector[GG] = s_C1->vector[GG];
+  }
 
 }
 
@@ -63,20 +80,46 @@ void reverseStrandO(comp_matrix *r_O, comp_matrix *s_O) {
   r_O->n_desp = s_O->n_desp;
   r_O->m_desp = s_O->m_desp;
 
-  r_O->desp[0] = s_O->desp[3];
-  r_O->desp[3] = s_O->desp[0];
-  r_O->desp[1] = s_O->desp[2];
-  r_O->desp[2] = s_O->desp[1];
+  if (AA != -1 && TT !=-1) {
+    r_O->desp[AA] = s_O->desp[TT];
+    r_O->desp[TT] = s_O->desp[AA];
+  } else if (AA != -1) {
+    r_O->desp[AA] = s_O->desp[AA];
+  } else if (TT != -1) {
+    r_O->desp[TT] = s_O->desp[TT];
+  }
+
+  if (CC != -1 && GG !=-1) {
+    r_O->desp[CC] = s_O->desp[GG];
+    r_O->desp[GG] = s_O->desp[CC];
+  } else if (CC != -1) {
+    r_O->desp[CC] = s_O->desp[CC];
+  } else if (GG != -1) {
+    r_O->desp[GG] = s_O->desp[GG];
+  }
 
 #if defined VECTOR_O_32BIT_COMPRESSION || VECTOR_O_64BIT_COMPRESSION
 
   r_O->n_count = s_O->n_count;
   r_O->m_count = s_O->m_count;
 
-  r_O->count[0] = s_O->count[3];
-  r_O->count[3] = s_O->count[0];
-  r_O->count[1] = s_O->count[2];
-  r_O->count[2] = s_O->count[1];
+  if (AA != -1 && TT !=-1) {
+    r_O->count[AA] = s_O->count[TT];
+    r_O->count[TT] = s_O->count[AA];
+  } else if (AA != -1) {
+    r_O->count[AA] = s_O->count[AA];
+  } else if (TT != -1) {
+    r_O->count[TT] = s_O->count[TT];
+  }
+
+  if (CC != -1 && GG !=-1) {
+    r_O->count[CC] = s_O->count[GG];
+    r_O->count[GG] = s_O->count[CC];
+  } else if (CC != -1) {
+    r_O->count[CC] = s_O->count[CC];
+  } else if (GG != -1) {
+    r_O->count[GG] = s_O->count[GG];
+  }
 
 #endif
 
@@ -293,6 +336,7 @@ void saveUIntCompVector(comp_vector *vector, const char *directory, const char *
 
   size_t err=0;
   FILE *fp;
+
   char path[500];
 
   path[0]='\0';
@@ -430,37 +474,11 @@ void saveCompMatrix(comp_matrix *matrix, const char *directory, const char *name
 
 }
 
-int table[128];
-
-void initReplaceTable() {
-    table['a'] = AAA;
-    table['A'] = AAA;
-    table['c'] = CCC;
-    table['C'] = CCC;
-    table['t'] = TTT;
-    table['T'] = TTT;
-    table['g'] = GGG;
-    table['G'] = GGG;
-    table['n'] = AAA;
-    table['N'] = AAA;
-}
-
-char *replaceBases(char *uncoded, char *coded, size_t length) {
-
-  size_t i;
-
-  for (i=0; i<length; i++)
-    coded[i] = table[(int)uncoded[i]];
-
-  return coded;
-
-}
-
 int nextFASTAToken(FILE *queries_file, char *uncoded, char *coded, unsigned int *nquery, char *compressed, unsigned int*ncompress) {
 
   char line[MAXLINE];
   unsigned int length;
-  
+
   *nquery=0;
   uncoded[0]='\0';
 
@@ -484,7 +502,8 @@ int nextFASTAToken(FILE *queries_file, char *uncoded, char *coded, unsigned int 
 
   if (*nquery) {
 
-    replaceBases(uncoded, coded, *nquery);
+    //replaceBases(uncoded, coded, *nquery);
+    encodeBases(coded, uncoded, *nquery);
 
     if (compressed != NULL)
       *ncompress = comp4basesInChar(coded, *nquery, compressed);
@@ -584,7 +603,6 @@ void load_reference(byte_vector *X, int duplicate, exome *ex, const char *path) 
   checkFileOpen(ref_file, path);
 
   size_t read=0, size;
-  unsigned int nX;
 
   fseek(ref_file, 0, SEEK_END);
   read = ftell(ref_file);
@@ -596,7 +614,6 @@ void load_reference(byte_vector *X, int duplicate, exome *ex, const char *path) 
   X->vector = (char *) malloc( size * sizeof(char) );
   checkMalloc(X->vector, path);
 
-  nX=0;
   if (ex !=NULL) ex->size=0;
 
   //char line[MAXLINE];
@@ -658,9 +675,10 @@ void load_reference(byte_vector *X, int duplicate, exome *ex, const char *path) 
     ex->size++;
   }
 
-  replaceBases(X->vector, X->vector, total_length);
+  //replaceBases(X->vector, X->vector, total_length);
+  encodeBases(X->vector, X->vector, total_length);
 
-  X->vector[total_length] = DDD;
+  X->vector[total_length] = -1; // dollar symbol
   X->n = total_length;
 
   fclose(ref_file);
@@ -673,8 +691,7 @@ void load_exome_file(exome *ex, const char *directory) {
 
   FILE *fp;
 
-  char path[strlen(directory) + 512];
-
+  char path[500];
   path[0]='\0';
   strcat(path, directory);
   strcat(path, "/index");
@@ -682,6 +699,7 @@ void load_exome_file(exome *ex, const char *directory) {
   fp  = fopen(path,  "r");
   checkFileOpen(fp, path);
 
+  int j;
   char c;
   char line[MAXLINE];
 
@@ -692,8 +710,8 @@ void load_exome_file(exome *ex, const char *directory) {
 
     if (line[0]=='>') {
 
-      int j;
-      for(j=0; j<IDMAX-1; j++) {
+      c = 0;
+      for(j = 0; j < IDMAX-1; j++) {
 	c = line[j+1];
 	if (c==' ') break;
 	ex->chromosome[ex->size*IDMAX+j] = c;
@@ -705,13 +723,10 @@ void load_exome_file(exome *ex, const char *directory) {
       //printf(">%u %s %u %u\n", ex->offset[ex->size], ex->chromosome + ex->size*IDMAX, ex->start[ex->size], ex->end[ex->size]);
       ex->size++;
       ex->offset[ex->size] = ex->offset[ex->size-1] + (ex->end[ex->size-1] - ex->start[ex->size-1]+1);
-
     }
-
   }
 
   fclose(fp);
-
 }
 
 void save_exome_file(exome *ex, const char *directory) {
@@ -741,6 +756,26 @@ void initialize_init_mask() {
 
 }
 
+void concat_error_string(char *mask, char *mask_aux, result *r, int rr, int *enW) {
+
+  if      (r->err_kind[rr]==DELETION)
+    (*enW)--;
+  else if (r->err_kind[rr]==INSERTION)
+    (*enW)++;
+
+  if      (r->err_kind[rr]==DELETION) {
+    sprintf(mask_aux, "_%d%c",   r->err_pos[rr], 'd');
+    strcat(mask, mask_aux);
+  } else if (r->err_kind[rr]==MISMATCH) {
+    sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'm', rev_table[(unsigned char)r->err_base[rr]]);
+    strcat(mask, mask_aux);
+  } else {
+    sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'i', rev_table[(unsigned char)r->err_base[rr]]);
+    strcat(mask, mask_aux);
+  }
+
+}
+
 int write_results(results_list *r_list, exome* ex, comp_vector *S, comp_vector *Si, vector *C, comp_matrix *O, comp_matrix *Oi, char *mapping, int nW, int type, FILE *fp) {
 
   result *r;
@@ -750,37 +785,41 @@ int write_results(results_list *r_list, exome* ex, comp_vector *S, comp_vector *
   int found=0;
 
   char search[MAXLINE+1];
-  char mask[MAXLINE+1];
+  char mask[6*(MAXLINE+1)];
+  char mask_aux[6];
 
   int direction;
 
   search[0] = '\0';
   strncat(search, mapping, nW);
 
-  for (size_t i=0;i<r_list->num_results; i++) {  //TODO: Cigar code
+  for (size_t i=0;i<r_list->num_results; i++) {
 
     r = &r_list->list[i];
 
-    mask[0] = '\0';
-    strncat(mask, init_mask, nW);
-    mask[nW] = '\0';
+    if (type) {
+      direction = r->dir;
+    } else {
+      direction = !r->dir;
+    }
 
     //enW = nW;
+
     enW = r->end - r->start + 1; //Partial results
 
-    for (int rr=0; rr<r->num_mismatches; rr++) {
+    mask[0] = '\0';
+    
+    if (direction) {
 
-      if (r->err_kind[rr]==DELETION)
-  	enW--;
-      else if (r->err_kind[rr]==INSERTION)
-  	enW++;
+      for (int rr=0; rr<r->num_mismatches; rr++) {
+	concat_error_string(mask, mask_aux, r, rr, &enW);
+      }
 
-      if      (r->err_kind[rr]==DELETION)
-	mask[r->err_pos[rr]] = 'D';
-      else if (r->err_kind[rr]==MISMATCH)
-      	mask[r->err_pos[rr]] = 'M';
-      else if (r->err_kind[rr]==INSERTION)
-      	mask[r->err_pos[rr]] = 'I';
+    } else {
+ 
+      for (int rr=r->num_mismatches-1; rr>=0; rr--) {
+	concat_error_string(mask, mask_aux, r, rr, &enW);
+      }
 
     }
 
@@ -788,14 +827,7 @@ int write_results(results_list *r_list, exome* ex, comp_vector *S, comp_vector *
     //printf("%d %d %d\n", r->start, r->pos, r->end);
     //printf("\n");
 
-    //TODO: Añadir calculo de la mascara
     for (size_t j=r->k; j<=r->l; j++) {
-
-      if (type) {
-    	direction = r->dir;
-      } else {
-    	direction = !r->dir;
-      }
 
       if (S->ratio==1) {
 
@@ -818,8 +850,8 @@ int write_results(results_list *r_list, exome* ex, comp_vector *S, comp_vector *
       if(key + enW <= ex->offset[index]) {
     	found = 1;
     	//printf("%lu\n", r_list->read_index);
-    	fprintf(fp, "read_%u\t%c\t%s %u %s %s\n", r_list->read_index, plusminus[type], ex->chromosome + (index-1)*IDMAX, ex->start[index-1] + (key - ex->offset[index-1]), search, search /*mask*/);
-    	//printf("read_%u\t%c\t%s %u %s %s\n", r_list->read_index, plusminus[type], ex->chromosome + (index-1)*IDMAX, ex->start[index-1] + (key - ex->offset[index-1]), search, mask);
+	fprintf(fp, "read_%u %c %s %u %d%s\n", r_list->read_index, plusminus[type], ex->chromosome + (index-1)*IDMAX, ex->start[index-1] + (key - ex->offset[index-1]), r->num_mismatches, mask);
+	//printf("read_%u %c %s %u %d%s\n", r_list->read_index, plusminus[type], ex->chromosome + (index-1)*IDMAX, ex->start[index-1] + (key - ex->offset[index-1]), r->num_mismatches, mask);
       }
 
     }
@@ -829,3 +861,42 @@ int write_results(results_list *r_list, exome* ex, comp_vector *S, comp_vector *
   return found;
 
 }
+/*
+void readNucleotide(char *nucleotide, const char *directory, const char *name) {
+  size_t err=0;
+  FILE *fp;
+
+  char path[500];
+  path[0]='\0';
+  strcat(path, directory);
+  strcat(path, "/");
+  strcat(path, name);
+  strcat(path, ".txt");
+
+  fp  = fopen(path,  "r");
+  checkFileOpen(fp, path);
+
+  fgets(nucleotide, 4, fp);
+
+  fclose(fp);
+}
+
+void saveNucleotide(char *nucleotide, const char *directory, const char *name) {
+  size_t err=0;
+  FILE *fp;
+
+  char path[500];
+  path[0]='\0';
+  strcat(path, directory);
+  strcat(path, "/");
+  strcat(path, name);
+  strcat(path, ".txt");
+
+  fp  = fopen(path,  "w");
+  checkFileOpen(fp, path);
+
+  fputs(nucleotide, fp);
+
+  fclose(fp);
+}
+*/
