@@ -37,7 +37,6 @@ double time_bwt, time_search, time_bwt_seed, time_search_seed;
 // Paratemers for the candidate alignment localizations (CALs)
 //-----------------------------------------------------------------------------
 
-
 typedef struct cal_optarg {
   size_t min_cal_size;
   size_t max_cal_distance;
@@ -60,23 +59,34 @@ void cal_optarg_free(cal_optarg_t *optarg);
 
 //-----------------------------------------------------------------------------
 
+typedef struct seed_region {
+  size_t read_start;
+  size_t read_end;
+  size_t genome_start;
+  size_t genome_end;
+} seed_region_t;
+
+seed_region_t *seed_region_new(size_t read_start, size_t read_end, size_t genome_start, size_t genome_end);
+
+void seed_region_free();
+
+//-----------------------------------------------------------------------------
+
 typedef struct cal {
   size_t chromosome_id;
   short int strand;
   size_t start;
   size_t end;
   size_t num_seeds;
-  size_t flank_start;
-  size_t flank_end;
+  linked_list_t *seed_region_list;
 } cal_t;
 
-cal_t *cal_new(const size_t chromosome_id, 
-	       const short int strand,
-	       const size_t start, 
-	       const size_t end,
-	       const size_t num_seeds,
-	       const size_t f_start,
-	       const size_t f_end);
+cal_t *cal_new(const size_t chromosome_id,
+               const short int strand,
+               const size_t start,
+               const size_t end,
+               const size_t num_seeds,
+               const linked_list_t *seed_region_list);
 
 void cal_free(cal_t *cal);
 
@@ -87,19 +97,18 @@ typedef struct region {
   short int strand;
   size_t start;
   size_t end;
-
   size_t seq_start;
   size_t seq_end;
   size_t seq_len;
 } region_t;
 
 region_t *region_bwt_new(const size_t chromosome_id, 
-	             const short int strand,
-	             const size_t start, 
-	             const size_t end,
-		     const size_t seq_start,
-		     const size_t seq_end,
-		     const size_t seq_len);
+			 const short int strand,
+			 const size_t start, 
+			 const size_t end,
+			 const size_t seq_start,
+			 const size_t seq_end,
+			 const size_t seq_len);
 
 void region_bwt_free(region_t *region);
 
@@ -108,12 +117,11 @@ void region_bwt_free(region_t *region);
 typedef struct short_cal {
   size_t start;
   size_t end;
-
+  size_t seq_len;
+  size_t num_seeds;
   size_t seq_start;
   size_t seq_end;
-  size_t seq_len;
-
-  size_t num_seeds;
+  linked_list_t *seed_region_list;
 } short_cal_t;
 
 short_cal_t *short_cal_new(const size_t start, 

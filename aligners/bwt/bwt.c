@@ -92,7 +92,7 @@ cal_optarg_t *cal_optarg_new(const size_t min_cal_size,
   return cal_optarg_p;
 }
     
-void cal_optarg_free(cal_optarg_t *optarg){
+void cal_optarg_free(cal_optarg_t *optarg) {
   free(optarg);
 }
 
@@ -103,8 +103,7 @@ cal_t *cal_new(const size_t chromosome_id,
 	       const size_t start, 
 	       const size_t end,
 	       const size_t num_seeds,
-	       const size_t f_start,
-	       const size_t f_end) {
+	       const linked_list_t *seed_region_list) {
 		 
   cal_t *cal = (cal_t *)malloc(sizeof(cal_t));  
 
@@ -113,15 +112,30 @@ cal_t *cal_new(const size_t chromosome_id,
   cal->start = start;
   cal->strand = strand;
   cal->num_seeds = num_seeds;
-  cal->flank_start = f_start;
-  cal->flank_end = f_end;
+  cal->seed_region_list = seed_region_list;
 
   return cal;
 }
 
 
-void cal_free(cal_t *cal){
+void cal_free(cal_t *cal) {
   free(cal);
+}
+
+//------------------------------------------------------------------------------
+
+seed_region_t *seed_region_new(size_t read_start, size_t read_end, size_t genome_start, size_t genome_end){
+  seed_region_t *seed_region = (seed_region_t *)malloc(sizeof(seed_region_t));
+  seed_region->read_start = read_start;
+  seed_region->read_end = read_end;
+  seed_region->genome_start = genome_start;
+  seed_region->genome_end = genome_end;
+
+  return seed_region;
+}
+
+void seed_region_free(seed_region_t *seed_region) {
+  free(seed_region);
 }
 
 //------------------------------------------------------------------------------
@@ -137,12 +151,16 @@ short_cal_t *short_cal_new(const size_t start,
   
   short_cal->end = end;
   short_cal->start = start;
-
-  short_cal->seq_end = seq_end;
-  short_cal->seq_start = seq_start;
   short_cal->seq_len = seq_len;
-
   short_cal->num_seeds = num_seeds;
+
+  short_cal->seed_region_list = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
+  seed_region_t *seed_region = seed_region_new(seq_start, seq_end, start, end);
+  printf("\tInsert New [Seed:=%lu-%lu]\n", seq_start, seq_end);
+  linked_list_insert(seed_region, short_cal->seed_region_list);
+  //short_cal->seq_end = seq_end;
+  //short_cal->seq_start = seq_start;
+
 
   return short_cal;
 }
@@ -168,7 +186,6 @@ region_t *region_bwt_new(const size_t chromosome_id,
   region->end = end;
   region->start = start;
   region->strand = strand;
-
   region->seq_start = seq_start;
   region->seq_end = seq_end;
   region->seq_len = seq_len;
@@ -177,7 +194,7 @@ region_t *region_bwt_new(const size_t chromosome_id,
 }
 
 
-void region_bwt_free(region_t *region){
+void region_bwt_free(region_t *region) {
   free(region);
 }
 
@@ -1020,7 +1037,6 @@ size_t bwt_map_exact_seed(char *seq, size_t seq_len,
   //  size_t start = 0;
   //  size_t end = len - 1;
   size_t start_mapping;
-
   size_t aux_seq_start, aux_seq_end;
   array_list_t *mappings = array_list_new(bwt_optarg->filter_read_mappings, 1.25f, 
 						     COLLECTION_MODE_ASYNCHRONIZED);
@@ -1035,20 +1051,19 @@ size_t bwt_map_exact_seed(char *seq, size_t seq_len,
     result.end = end;
     if (type == 1) {
       // strand +
-      result.pos = end;
       aux_seq_start = seq_start;
       aux_seq_end = seq_end;
-	
+      result.pos = end;	
       start_timer(t_start);
       BWExactSearchBackward(code_seq, &index->h_C, &index->h_C1, &index->h_O, &result);
       //BWExactSearchBackward(code_seq, start, end, &index->h_C, &index->h_C1, &index->h_O, result_p);
       stop_timer(t_start, t_end, time_bwt_seed);
     } else {
       // strand -
-      result.pos = start;
-      aux_seq_start = seq_end;
-      aux_seq_end = seq_start;
-      
+      aux_seq_start = seq_len - seq_end;
+      aux_seq_end = seq_len - seq_start;
+
+      result.pos = start;      
       start_timer(t_start);
       BWExactSearchForward(code_seq, &index->h_rC, &index->h_rC1, &index->h_rO, &result);
 	//BWExactSearchForward(code_seq, start, end, &index->h_rC, &index->h_rC1, &index->h_rO, result_p);
@@ -2580,24 +2595,164 @@ void print_se_region_cp(short_cal_t *short_cal, void* dummy){
 
 //-----------------------------------------------------------------------------
 
-void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size_t max_cal_distance) {
-  
+void append_seed_region_linked_list(linked_list_t* list_p, size_t read_start, size_t read_end, 
+				    size_t genome_start, size_t genome_end) {
+  unsigned char actualization = 0;
+  seed_region_t *item, *item_aux, *new_item, *item_free;
+  linked_list_iterator_t* itr = linked_list_iterator_new(list_p);
+
+  printf("\tInsert [Seed:=%lu-%lu]\n", read_start, read_end);
+  if (linked_list_size(list_p) <= 0) {
+    new_item = seed_region_new(read_start, read_end, genome_start, genome_end);
+    linked_list_insert(new_item, list_p);
+  } else {
+    item = (seed_region_t *)linked_list_iterator_curr(itr);
+    while (item != NULL) {
+      //printf("\t compare with %lu\n", item->start);
+      if (read_start < item->read_start) {
+	if (read_end + 1 < item->read_start) {
+	  /*********************************************
+	   *    Case 1: New item insert before item.   *
+           *                                           *
+           *        new item     item                  *
+           *       |-------| |--------|                *
+           ********************************************/
+	  //printf("\t Insert now before %lu\n", item->start);
+	  new_item = seed_region_new(read_start, read_end, genome_start, genome_end);
+	  linked_list_iterator_insert(new_item, itr);
+	  linked_list_iterator_prev(itr);
+	} else {
+	  /********************************************
+           *  Case 2: Actualization item start        *
+           *           new item                       *
+           *          |-------|   item                *
+           *                   |--------|             *                            
+           ********************************************/
+	  //printf("\tFusion!\n");
+	  item->read_start = read_start;
+	  item->genome_start = genome_start;
+	  if (read_end > item->read_end) {
+	    /**************************************************
+             *  Case 3: Actualization item start and item end *
+             *          new item                              *
+             *         |------------|                         *
+             *              item                              *    
+             *           |--------|                           *                                    
+             **************************************************/
+	    //printf("\tFusion!\n");
+	    item->read_end = read_end;
+	    item->genome_end = genome_end;
+	    actualization = 1;
+	  }
+	}
+	break;
+      } else {
+	if (read_end <= item->read_end) {
+	  /**************************************************                                       
+           *  Case 4: The new item don't insert in the list *                             
+           *              item                              * 
+           *         |-------------|                        * 
+           *             new item                           * 
+           *            |--------|                          * 
+           **************************************************/
+	  //printf("\tFusion!\n");
+	  break;
+	} else if (item->read_end + 1 >= read_start) {
+	  /********************************************                                              
+           *  Case 5: Actualization item end          *
+           *            item                          *                                              
+           *          |-------| new item              *                                            
+           *                 |--------|               *                                              
+           ********************************************/
+	  //printf("\tFusion!\n");
+	  item->read_end = read_end;
+	  item->genome_end = genome_end;
+	  actualization = 1;
+	  break;
+	}
+      } // end else
+
+      //continue loop...
+      linked_list_iterator_next(itr);
+      item = linked_list_iterator_curr(itr);
+      
+    } // end while
+
+    if (item == NULL) {
+      /******************************************************* 
+       * Case 5: Insert new item at the end of the list      * 
+       *                 item    new item                    * 
+       *              |-------| |--------|                   *    
+       *******************************************************/
+      new_item = seed_region_new(read_start, read_end, genome_start, genome_end);
+      //printf("\tInsert at END\n");
+      linked_list_insert_last(new_item, list_p);
+    }
+    //printf("Insert OK! and now actualization\n");
+    if (actualization == 1) {
+      //printf("\tActualization RIGHT items (Next). Current item [%d-%d]\n", item->start, item->end);
+      //printf("List before actualization\n");
+      //linked_list_print(list_p, print_se_region);
+      //printf("\n\n");
+ 
+      linked_list_iterator_next(itr);
+      item_aux = linked_list_iterator_curr(itr);
+
+      while (item_aux != NULL) {
+	//printf("\t\tFusion right items. item->end=%d < item_aux->start=%d?\n", item->end, item_aux->start);
+	//printf("\tIterator are in [%lu-%lu] and compare with item [%lu-%lu]\n", item_aux->start, item_aux->end, item->start, item->end);
+	if (item->read_end + 1 < item_aux->read_start) {
+	  //printf("\t\tSTOP Actualization\n");
+	  break;
+	} else {
+	  //printf("\t\tCONTINUE Actualization. item->end=%d < item_aux->end=%d?\n", item->end, item_aux->end);
+	  if (item->read_end < item_aux->read_end) {
+	    //printf("\t\tActualization end value %d\n", item_aux->end);
+	    item->read_end = item_aux->read_end;
+	    item->genome_end = item_aux->genome_end;
+	  }
+          //printf("\t\tDelete item %d-%d\n", item_aux->start, item_aux->end);
+	  item_free = linked_list_iterator_remove(itr);
+	  if (item_free) { seed_region_free(item_free); }
+	  //printf("\t\tDelete OK!\n");
+	  item_aux = linked_list_iterator_curr(itr);
+	}                                                                                             
+      }
+      /*printf("List after actualization\n");
+      linked_list_print(list_p, print_se_region);
+      printf("\n\n");*/
+    }
+  }//end first else
+  //printf("End insert and actualization\n");
+  linked_list_iterator_free(itr);
+
+  printf("Status Seed Region list %lu:\n", linked_list_size(list_p));
+
+  for (linked_list_item_t *list_item = list_p->first; list_item != NULL; list_item = list_item->next) {
+    seed_region_t *s = list_item->item;
+    printf("[%i|%i - %i|%i]  ", s->genome_start, s->read_start, s->read_end, s->genome_end);
+  }
+  printf("\n");
+
+}
+
+
+//-----------------------------------------------------------------------------
+
+void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size_t max_cal_distance) {  
   unsigned char actualization = 0;
   short_cal_t *item, *item_aux, *new_item_p, *item_free;
   
-  int strand = region->strand;
-
+  //int strand = region->strand;
   size_t start = region->start;
   size_t end = region->end;
   size_t seq_start = region->seq_start;
   size_t seq_end = region->seq_end;
   size_t seq_len = region->seq_len;
-
   linked_list_iterator_t* itr = linked_list_iterator_new(list_p);
-  //printf("Inserting...\n");
+
   if (linked_list_size(list_p) <= 0) {
     new_item_p = short_cal_new(start, end, seq_start, seq_end, seq_len, 1);
-    //printf("\tInsert at first position\n");
     linked_list_insert(new_item_p, list_p);
   } else {
     item = (short_cal_t *)linked_list_iterator_curr(itr);
@@ -2611,6 +2766,7 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
            *        new item     item                  *
            *       |-------| |--------|                *
            ********************************************/
+
 	  //printf("\t Insert now before %lu\n", item->start);
 	  new_item_p = short_cal_new(start, end, seq_start, seq_end, seq_len, 1);
 	  linked_list_iterator_insert(new_item_p, itr);
@@ -2625,8 +2781,8 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
 	  //printf("\tFusion!\n");
 	  item->start = start;
 	  item->num_seeds++;
-	  item->seq_start = seq_start;
-	  
+	  //item->seq_start = seq_start;
+	  append_seed_region_linked_list(item->seed_region_list, seq_start, seq_end, start, end);
 	  if (end > item->end) {
 	    /**************************************************
              *  Case 3: Actualization item start and item end *
@@ -2637,7 +2793,7 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
              **************************************************/
 	    //printf("\tFusion!\n");
 	    item->end = end;
-	    item->seq_end = seq_end;
+	    //item->seq_end = seq_end;
 	    actualization = 1;
 	  }
 	}
@@ -2653,6 +2809,7 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
            **************************************************/
 	  //printf("\tFusion!\n");
 	  item->num_seeds++;
+	  append_seed_region_linked_list(item->seed_region_list, seq_start, seq_end, start, end);
 	  break;
 	} else if (item->end + max_cal_distance >= start) {
 	  /********************************************                                              
@@ -2663,7 +2820,8 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
            ********************************************/
 	  //printf("\tFusion!\n");
 	  item->end = end;
-	  item->seq_end = seq_end;
+	  //item->seq_end = seq_end;
+	  append_seed_region_linked_list(item->seed_region_list, seq_start, seq_end, start, end);
 	  actualization = 1;
 	  item->num_seeds++;
 	  break;
@@ -2707,7 +2865,14 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
 	  if (item->end < item_aux->end) {
 	    //printf("\t\tActualization end value %d\n", item_aux->end);
 	    item->end = item_aux->end;
-	    item->seq_end = item_aux->seq_end;
+	    //item->seq_end = item_aux->seq_end;	    
+	    seed_region_t *seed_region_aux;
+	    while (seed_region_aux = linked_list_remove_first(item_aux->seed_region_list)) {
+	      append_seed_region_linked_list(item->seed_region_list, seed_region_aux->read_start, 
+					     seed_region_aux->read_end, seed_region_aux->genome_start, seed_region_aux->genome_end);
+	      seed_region_free(seed_region_aux);
+	    }
+
 	  }
           //printf("\t\tDelete item %d-%d\n", item_aux->start, item_aux->end);
 	  item_free = linked_list_iterator_remove(itr);
@@ -2732,7 +2897,7 @@ size_t bwt_generate_cal_list_linkedlist(array_list_t *mapping_list,
 					size_t *min_seeds, size_t *max_seeds,
 					size_t nchromosomes,
 					array_list_t *cal_list) {
-
+  /*
   short_cal_t *short_cal_p;
   region_t *region;
   size_t min_cal_size = cal_optarg->min_cal_size;
@@ -2821,7 +2986,7 @@ size_t bwt_generate_cal_list_linkedlist(array_list_t *mapping_list,
   // for debugging
   //  printf("--->final num. cals = %i\n", array_list_size(cal_list));
 
-  return array_list_size(cal_list);  
+  return array_list_size(cal_list);  */
 }
 
 //-----------------------------------------------------------------------------
@@ -2830,6 +2995,7 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     array_list_t *cal_list,
 					     size_t read_length, size_t nchromosomes) {
+  printf("::: CALS PROCESS :::\n");
 
   short_cal_t *short_cal_p;
   linked_list_item_t *list_item;
@@ -2858,6 +3024,7 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
     region = array_list_get(m, mapping_list);
     chromosome_id = region->chromosome_id;
     strand = region->strand;
+    printf("Inserting [Region(%i):=%i:%lu-%lu] [Seed:=%lu-%lu]\n", strand, chromosome_id, region->start, region->end, region->seq_start, region->seq_end);
     my_cp_list_append_linked_list(cals_list[strand][chromosome_id], region, max_cal_distance);
   }
 
@@ -2873,24 +3040,23 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
       while ((list_item != NULL )) {
 	short_cal_p = (short_cal_t *)list_item->item;
 	//printf("Process short CAL %d - [%d - %d](%i)\n", j, short_cal_p->start, short_cal_p->end, short_cal_p->end - short_cal_p->start);
-	if (i) {
+	/*if (i) {
 	  seq_start = read_length - short_cal_p->seq_start;
 	  seq_end = short_cal_p->seq_end;
 	} else {
 	  seq_start = short_cal_p->seq_start;
 	  seq_end = read_length - short_cal_p->seq_end;
-	}
-	start_cal = short_cal_p->start - seq_start;
-        end_cal = short_cal_p->end + seq_end;
-	len = end_cal - start_cal + 1;
+	  }*/
+	//start_cal = short_cal_p->start - seq_start;
+        //end_cal = short_cal_p->end + seq_end;
+	//len = end_cal - start_cal + 1;
 	if (short_cal_p->end - short_cal_p->start + 1 >= min_cal_size) {
 	  //printf("\tInsert\n");
 	  //printf("(-)%i - %i\n", short_cal_p->seq_start, short_cal_p->seq_end);
 	  //printf("CAL chr %i [%lu-%lu]%i\n", j, short_cal_p->start, short_cal_p->end, len);
 	  array_list_insert(cal_new(j, i, short_cal_p->start, 
 				    short_cal_p->end, short_cal_p->num_seeds, 
-				    seq_start,
-				    seq_end), cal_list);
+				    short_cal_p->seed_region_list), cal_list);
         }
         //short_cal_free(short_cal_p);
 	linked_list_iterator_next(&itr);
@@ -2910,6 +3076,18 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
   }
 
   free(cals_list);
+  
+  printf(":: CALS RESULT: \n");
+  for (int i = 0; i < array_list_size(cal_list); i++) {
+    cal_t *cal = array_list_get(i, cal_list);
+    printf("\tCAL%i:= Num Seeds: %i, chr %i:(%i)[%lu-%lu], Total Seeds Regions %lu: \n",i, cal->num_seeds,
+	   cal->chromosome_id, cal->strand, cal->start, cal->end, linked_list_size(cal->seed_region_list));
+    for (linked_list_item_t *list_item = cal->seed_region_list->first; list_item != NULL; list_item = list_item->next) {
+      seed_region_t *s = list_item->item;
+      printf("[%i|%i - %i|%i]  ", s->genome_start, s->read_start, s->read_end, s->genome_end);
+    }
+    printf("\n");
+  }
 
   return array_list_size(cal_list);
 }
@@ -3048,7 +3226,7 @@ size_t bwt_generate_cal_list(array_list_t *mapping_list,
 	}
       }
     } else {
-      array_list_insert(cal_new(chromosome_id, strand, start, end, 0, 0, 0),
+      array_list_insert(cal_new(chromosome_id, strand, start, end, 0, NULL),
 			cal_list);
     }
   } // end for mappings
