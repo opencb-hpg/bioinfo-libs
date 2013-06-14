@@ -64,9 +64,11 @@ typedef struct seed_region {
   size_t read_end;
   size_t genome_start;
   size_t genome_end;
+  int id;
 } seed_region_t;
 
-seed_region_t *seed_region_new(size_t read_start, size_t read_end, size_t genome_start, size_t genome_end);
+seed_region_t *seed_region_new(size_t read_start, size_t read_end, 
+			       size_t genome_start, size_t genome_end, int id);
 
 void seed_region_free();
 
@@ -78,7 +80,8 @@ typedef struct cal {
   size_t start;
   size_t end;
   size_t num_seeds;
-  linked_list_t *seed_region_list;
+  linked_list_t *sr_list;
+  linked_list_t *sr_duplicate_list;
 } cal_t;
 
 cal_t *cal_new(const size_t chromosome_id,
@@ -86,7 +89,8 @@ cal_t *cal_new(const size_t chromosome_id,
                const size_t start,
                const size_t end,
                const size_t num_seeds,
-               const linked_list_t *seed_region_list);
+               const linked_list_t *sr_list,
+               const linked_list_t *sr_duplicate_list);
 
 void cal_free(cal_t *cal);
 
@@ -100,6 +104,7 @@ typedef struct region {
   size_t seq_start;
   size_t seq_end;
   size_t seq_len;
+  int id;
 } region_t;
 
 region_t *region_bwt_new(const size_t chromosome_id, 
@@ -108,7 +113,8 @@ region_t *region_bwt_new(const size_t chromosome_id,
 			 const size_t end,
 			 const size_t seq_start,
 			 const size_t seq_end,
-			 const size_t seq_len);
+			 const size_t seq_len,
+			 const int id);
 
 void region_bwt_free(region_t *region);
 
@@ -121,7 +127,9 @@ typedef struct short_cal {
   size_t num_seeds;
   size_t seq_start;
   size_t seq_end;
-  linked_list_t *seed_region_list;
+  linked_list_t *sr_list;
+  linked_list_t *sr_duplicate_list;
+  unsigned char *seeds_ids_array;
 } short_cal_t;
 
 short_cal_t *short_cal_new(const size_t start, 
@@ -129,7 +137,8 @@ short_cal_t *short_cal_new(const size_t start,
 			   const size_t seq_start,
 			   const size_t seq_end,
 			   const size_t seq_len,
-			   const size_t num_seeds);
+			   const size_t max_seeds,
+			   const int id);
 
 void short_cal_free(short_cal_t *short_cal_p);
 
@@ -315,24 +324,27 @@ size_t bwt_find_cals_from_batch(fastq_batch_t *batch,
 				array_list_t *cal_list);
 
 
-size_t bwt_generate_cal_list_rna_linkedlist(array_list_t *mapping_list,
+/*size_t bwt_generate_cal_list_rna_linkedlist(array_list_t *mapping_list,
 					    cal_optarg_t *cal_optarg,
 					    array_list_t *cal_list,
 					    size_t read_length, size_t nchromosomes);
 
+*/
 
-size_t bwt_generate_cal_list_linkedlist(array_list_t *mapping_list,
-					cal_optarg_t *cal_optarg,
-					size_t *min_seeds, size_t *max_seeds,
-					size_t nchromosomes,
-					array_list_t *cal_list);
+size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
+					 cal_optarg_t *cal_optarg,
+					 size_t *min_seeds, size_t *max_seeds,
+					 size_t nchromosomes,
+					 array_list_t *cal_list,
+					 size_t read_length);
 
 
-size_t bwt_generate_cal_list_linked_list_rna(array_list_t *mapping_list,
+/*size_t bwt_generate_cal_list_linked_list_rna(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     size_t *min_seeds, size_t *max_seeds,
 					     array_list_t *cal_list);
 
+*/
 
 size_t bwt_map_inexact_array_list(array_list_t *reads,
 				  bwt_optarg_t *bwt_optarg, 
