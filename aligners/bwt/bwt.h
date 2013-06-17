@@ -366,6 +366,20 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     size_t read_length,
 					     size_t nchromosomes);
 
+
+size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
+                                             cal_optarg_t *cal_optarg,
+                                             size_t *min_seeds, size_t *max_seeds,
+                                             size_t nchromosomes,
+                                             array_list_t *cal_list,
+                                             size_t read_length);
+
+/*void append_seed_region_linked_list(linked_list_t* sr_list,
+				    size_t read_start, size_t read_end, 
+				    size_t genome_start, size_t genome_end, 
+				    int seed_id);
+
+*/
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 
