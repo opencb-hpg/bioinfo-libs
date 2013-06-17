@@ -106,10 +106,10 @@ size_t bwt_map_inexact_seq(char *seq,
 			   bwt_index_t *index, 
 			   array_list_t *mapping_list);
 
-size_t bwt_map_inexact_seq_bs(char *seq, 
-			      bwt_optarg_t *bwt_optarg, 
-			      bwt_index_t *index, 
-			      array_list_t *mapping_list);
+size_t bwt_map__forward_inexact_seq(char *seq, 
+				    bwt_optarg_t *bwt_optarg, 
+				    bwt_index_t *index, 
+				    array_list_t *mapping_list);
 
 size_t bwt_map_inexact_read(fastq_read_t *read, 
 			    bwt_optarg_t *bwt_optarg, 
@@ -1885,10 +1885,10 @@ size_t bwt_map_inexact_seqOLD(char *seq,
 // end of adding by JT and PP
 //-----------------------------------------------------------------------------
 
-size_t bwt_map_inexact_seq_bs(char *seq, 
-			      bwt_optarg_t *bwt_optarg, 
-			      bwt_index_t *index, 
-			      array_list_t *mapping_list) {
+size_t bwt_map_forward_inexact_seq(char *seq, 
+				   bwt_optarg_t *bwt_optarg, 
+				   bwt_index_t *index, 
+				   array_list_t *mapping_list) {
   
 
      alignment_t *alignment;
@@ -3230,9 +3230,15 @@ void bwt_map_inexact_array_list_by_filter_bs(array_list_t *reads,
   for (size_t i = 0; i < num_reads; i++) {
     fq_read = (fastq_read_t *) array_list_get(i, reads);
     array_list_set_flag(1, lists[i]);
-    num_mappings = bwt_map_inexact_seq_bs(fq_read->sequence, 
-					  bwt_optarg, index, 
-					  lists[i]);
+
+    //printf("read %lu (of %lu)\t", i, num_reads);
+    //printf("%s\n", fq_read->sequence);
+
+    num_mappings = bwt_map_forward_inexact_seq(fq_read->sequence, 
+					       bwt_optarg, index, 
+					       lists[i]);
+
+    //printf("end read %lu\n\n", i);
     
     if (num_mappings > 0) {
       array_list_set_flag(1, lists[i]);
@@ -4449,7 +4455,7 @@ char * readNucleotide(const char *directory, const char *name) {
   FILE *fp;
 
   char path[500];
-  char *tmp = malloc(10 * sizeof(char));
+  char tmp[5];
   path[0]='\0';
   strcat(path, directory);
   strcat(path, "/");
@@ -4466,7 +4472,7 @@ char * readNucleotide(const char *directory, const char *name) {
   
   fclose(fp);
 
-  return tmp;
+  return strdup(tmp);
 }
 
 //-----------------------------------------------------------------------------

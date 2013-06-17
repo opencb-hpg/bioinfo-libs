@@ -359,6 +359,11 @@ void bwt_map_inexact_array_list_by_filter_bs(array_list_t *reads,
 					     size_t *num_unmapped, 
 					     size_t *unmapped_indices);
 
+size_t bwt_map_forward_inexact_seq(char *seq, 
+				   bwt_optarg_t *bwt_optarg, 
+				   bwt_index_t *index, 
+				   array_list_t *mapping_list);
+  
 size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     array_list_t *cal_list,
