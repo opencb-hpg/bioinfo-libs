@@ -126,6 +126,7 @@ void cal_free(cal_t *cal) {
 
 seed_region_t *seed_region_new(size_t read_start, size_t read_end, size_t genome_start, size_t genome_end){
   seed_region_t *seed_region = (seed_region_t *)malloc(sizeof(seed_region_t));
+  seed_region->gap = 0;
   seed_region->read_start = read_start;
   seed_region->read_end = read_end;
   seed_region->genome_start = genome_start;
@@ -2990,12 +2991,12 @@ size_t bwt_generate_cal_list_linkedlist(array_list_t *mapping_list,
 }
 
 //-----------------------------------------------------------------------------
-
+ 
 size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     array_list_t *cal_list,
 					     size_t read_length, size_t nchromosomes) {
-  printf("::: CALS PROCESS :::\n");
+ printf("::: CALS PROCESS :::\n");
 
   short_cal_t *short_cal_p;
   linked_list_item_t *list_item;
