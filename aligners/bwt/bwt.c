@@ -1585,9 +1585,9 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
 //-----------------------------------------------------------------------------
 
 size_t bwt_map_inexact_seqOLD(char *seq, 
-			   bwt_optarg_t *bwt_optarg, 
-			   bwt_index_t *index, 
-			   array_list_t *mapping_list) {
+			      bwt_optarg_t *bwt_optarg, 
+			      bwt_index_t *index, 
+			      array_list_t *mapping_list) {
 
   printf("***index nucleotides = %s\n", index->nucleotides);
   
@@ -1937,9 +1937,14 @@ size_t bwt_map_forward_inexact_seq(char *seq,
 
      BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_O.siz - 2,
 				 k1, l1, &index->h_C, &index->h_C1, &index->h_O);
-  
+     //printf("k1[0]  = %9lu\tk1[1]  = %9lu\n", k1[0], k1[1]);
+     //printf("l1[0]  = %9lu\tl1[1]  = %9lu\n", l1[0], l1[1]);
+
      BWExactSearchVectorForward(code_seq, start, end, 0, index->h_Oi.siz - 2,
 				ki1, li1, &index->h_C, &index->h_C1, &index->h_Oi);
+     //printf("ki1[0] = %9lu\tki1[1] = %9lu\n", ki1[0], ki1[1]);
+     //printf("li1[0] = %9lu\tli1[1] = %9lu\n", li1[0], li1[1]);
+
      /*
      BWExactSearchVectorForward(code_seq, start, end, 0, index->h_rO.siz - 2,
 				k0, l0, &index->h_rC, &index->h_rC1, &index->h_rO);
@@ -1947,6 +1952,7 @@ size_t bwt_map_forward_inexact_seq(char *seq,
      BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_rOi.siz - 2,
 				 ki0, li0, &index->h_rC, &index->h_rC1, &index->h_rOi);
      */
+
      // compare the vectors k and l to get mappings in the genome
      size_t num_mappings = 0;
      char plusminus[2] = "-+";
@@ -4456,6 +4462,9 @@ char * readNucleotide(const char *directory, const char *name) {
 
   char path[500];
   char tmp[5];
+  //char *tmp = malloc(5 * sizeof(char));
+  //char *tmp;
+
   path[0]='\0';
   strcat(path, directory);
   strcat(path, "/");
@@ -4466,13 +4475,11 @@ char * readNucleotide(const char *directory, const char *name) {
   checkFileOpen(fp, path);
 
   fgets(tmp, 4, fp);
-  //nucleotide = strdup(tmp);
 
-  //printf("leido %s, devuelto %s\n", tmp, nucleotide);
-  
   fclose(fp);
 
   return strdup(tmp);
+  //return tmp;
 }
 
 //-----------------------------------------------------------------------------
