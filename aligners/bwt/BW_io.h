@@ -420,6 +420,8 @@ inline unsigned int getOcompValue(size_t n, size_t m, comp_matrix *O) {
   pos  = m / 64;
   desp = m % 64;
 
+  //printf("****************n = %lu\tm = %lu \n", n, m);
+
   return O->desp[n][pos] + bitcount( O->count[n][pos] << (64 - (desp + 1)) );
 
 }

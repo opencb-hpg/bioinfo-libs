@@ -749,7 +749,7 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
     }
 
     for (int b=0;b<nA;b++) {
-
+      /////////////////////////////////////////////////////////////////////////////
       BWiteration(_k, _l, _k_aux, _l_aux, b, C, C1, O);
 
       if (_k_aux > _l_aux) continue;
