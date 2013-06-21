@@ -140,15 +140,21 @@ cal_t *cal_new(const size_t chromosome_id,
 
 
 void cal_free(cal_t *cal) {
-  //linked_list_free(free, cal->sr_list);
-  //linked_list_free(free, cal->sr_duplicate_list);
-  free(cal);
+  if (cal) {
+    if (cal->sr_list) linked_list_free(cal->sr_list, (void *) seed_region_free);
+    if (cal->sr_duplicate_list) linked_list_free(cal->sr_duplicate_list, (void *) seed_region_free);
+
+    free(cal);
+  }
+
 }
 
 //------------------------------------------------------------------------------
 
 seed_region_t *seed_region_new(size_t read_start, size_t read_end, size_t genome_start, size_t genome_end, int id) {
   seed_region_t *seed_region = (seed_region_t *)malloc(sizeof(seed_region_t));
+  seed_region->gap = 0;
+  seed_region->run_sw = 0;
   seed_region->read_start = read_start;
   seed_region->read_end = read_end;
   seed_region->genome_start = genome_start;
@@ -178,25 +184,29 @@ short_cal_t *short_cal_new(const size_t start,
   short_cal->start = start;
   short_cal->seq_len = seq_len;
   short_cal->num_seeds = 1;
+
   short_cal->seeds_ids_array = (unsigned char *)calloc(max_seeds, sizeof(unsigned char));
   short_cal->seeds_ids_array[id] = 1;
 
   short_cal->sr_list = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
   seed_region_t *seed_region = seed_region_new(seq_start, seq_end, start, end, id);
-  //printf("\tInsert New [Seed:=%lu-%lu]\n", seq_start, seq_end);
+  //  printf("\tInsert New [Seed:=%lu-%lu]\n", seq_start, seq_end);
   linked_list_insert(seed_region, short_cal->sr_list);
   short_cal->sr_duplicate_list = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
 
-  //short_cal->seq_end = seq_end;
-  //short_cal->seq_start = seq_start;
   return short_cal;
-
 }
 
 
-void short_cal_free(short_cal_t *short_cal) {
-  if (short_cal->seeds_ids_array) { free(short_cal->seeds_ids_array); }
-  free(short_cal);
+void short_cal_free(short_cal_t *short_cal){
+  if (short_cal) {
+    if (short_cal->seeds_ids_array) free(short_cal->seeds_ids_array);
+    if (short_cal->sr_list) linked_list_free(short_cal->sr_list, (void *) seed_region_free);
+    if (short_cal->sr_duplicate_list) linked_list_free(short_cal->sr_duplicate_list, (void *) seed_region_free);
+
+    free(short_cal);
+  }
+
 }
 
 //------------------------------------------------------------------------------
@@ -2651,7 +2661,6 @@ void seed_region_select_linked_list(linked_list_t* sr_list, linked_list_t* sr_du
     item = seed_region_new(read_start, read_end, genome_start, genome_end, seed_id);
     linked_list_insert(item, sr_list);
   } else {
-    //printf("Is in!\n");
     if (seeds_ids_array[seed_id] == 1) { 
       linked_list_iterator_t* itr = linked_list_iterator_new(sr_list);
       item = (seed_region_t *)linked_list_iterator_curr(itr);
@@ -2665,11 +2674,13 @@ void seed_region_select_linked_list(linked_list_t* sr_list, linked_list_t* sr_du
 	linked_list_iterator_next(itr);
 	item = linked_list_iterator_curr(itr);
       }
+      linked_list_iterator_free(itr);
     }
     item = seed_region_new(read_start, read_end, genome_start, genome_end, seed_id);
     linked_list_insert(item, sr_duplicate_list);
     seeds_ids_array[seed_id]++;
   }
+
 
   //printf("\t sr_size = %i, sr_duplicate = %i\n", linked_list_size(sr_list), linked_list_size(sr_duplicate_list));
 
@@ -2857,6 +2868,7 @@ void append_seed_region_linked_list(linked_list_t* sr_list,
 	 ((seed_region_t *)sr_list->last->item)->read_start,  ((seed_region_t *)sr_list->last->item)->read_end);
   */
   /*for (linked_list_item_t *list_item = sr_list->first; list_item != NULL; list_item = list_item->next) {
+    printf("Status Seed Region list %lu:\n", linked_list_size(sr_list));
     seed_region_t *s = list_item->item;
     printf("[%i|%i - %i|%i]  ", s->genome_start, s->read_start, s->read_end, s->genome_end);
   }
@@ -3036,13 +3048,8 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 					 array_list_t *cal_list,
 					 size_t read_length) {
 
-  /*size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
-					     cal_optarg_t *cal_optarg,
-					     array_list_t *cal_list,
-					     size_t read_length, size_t nchromosomes) {
-  */
-  //printf("::: CALS PROCESS with max seeds %i:::\n", *max_seeds);
 
+  //  printf("::: CALS PROCESS with max seeds %i:::\n", *max_seeds);
   short_cal_t *short_cal;
   linked_list_item_t *list_item_cal, list_item_seed;
   region_t *region;
@@ -3074,7 +3081,6 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
     my_cp_list_append_linked_list(cals_list[strand][chromosome_id], region, max_cal_distance, *max_seeds);    
   }
 
-  //printf("End inserts. Select CALs\n");
   //Store CALs in Array List for return results                                                                                                                        
   size_t start_cal, end_cal, len;
   size_t seq_start, seq_end;
@@ -3088,10 +3094,10 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 	short_cal = (short_cal_t *)list_item_cal->item;
 	if (short_cal->end - short_cal->start + 1 >= min_cal_size) {
 	  linked_list_t *list_aux = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
-	  //printf("Removing %i items\n", linked_list_size(short_cal->sr_list));
+	  //	  printf("Removing %i items\n", linked_list_size(short_cal->sr_list));
 	  while (s = (seed_region_t *)linked_list_remove_last(short_cal->sr_list)) {
 	    //TODO: Change all parameters to seed_region_t
-	    //printf("Extract[%i|%i - %i|%i] and Insert:\n", s->genome_start, s->read_start, s->read_end, s->genome_end);
+	    //	    printf("Extract[%i|%i - %i|%i] and Insert:\n", s->genome_start, s->read_start, s->read_end, s->genome_end);
 	    append_seed_region_linked_list(list_aux,
 					   s->read_start, s->read_end, 
 					   s->genome_start, s->genome_end, 
@@ -3103,6 +3109,8 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
  	  array_list_insert(cal_new(j, i, short_cal->start, 
 				    short_cal->end, short_cal->num_seeds, 
 				    list_aux, short_cal->sr_duplicate_list), cal_list);
+	  short_cal->sr_duplicate_list = NULL;
+	  //	  short_cal->sr_list = NULL;
         }
         //short_cal_free(short_cal_p);
 	linked_list_iterator_next(&itr);
@@ -3122,10 +3130,22 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
   }
 
   free(cals_list);
-  
+
+  *min_seeds = 10000;
+  *max_seeds = 0;
+  for (int i = 0; i < array_list_size(cal_list); i++) {
+    cal_t *cal = array_list_get(i, cal_list);
+    if (*min_seeds > cal->num_seeds) *min_seeds = cal->num_seeds;
+    if (*max_seeds < cal->num_seeds) *max_seeds = cal->num_seeds;
+  }
+
+  /*  
   printf(":: CALS RESULT: \n");
   for (int i = 0; i < array_list_size(cal_list); i++) {
     cal_t *cal = array_list_get(i, cal_list);
+    if (*min_seeds > cal->num_seeds) *min_seeds = cal->num_seeds;
+    if (*max_seeds < cal->num_seeds) *max_seeds = cal->num_seeds;
+
     printf("\tCAL%i:= Num Seeds: %i, chr %i:(%i)[%lu-%lu]\n",i, cal->num_seeds,
 	   cal->chromosome_id, cal->strand, cal->start, cal->end);
 
@@ -3142,9 +3162,8 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
       printf("\t\t[%i|%i - %i|%i]\n", s->genome_start, s->read_start, s->read_end, s->genome_end);
     }
     printf("\n");
-
   }
-
+  */
   return array_list_size(cal_list);
 }
 
@@ -3207,6 +3226,8 @@ size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
   }
 
 
+  //  printf("End inserts. Select CALs\n");
+  //Store CALs in Array List for return results
   size_t start_cal, end_cal, len;
   size_t seq_start, seq_end;
   seed_region_t *s;
@@ -3227,8 +3248,9 @@ size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
       while (list_item_cal != NULL ) {
 	short_cal = (short_cal_t *)list_item_cal->item;
 	if (short_cal->end - short_cal->start + 1 >= min_cal_size) {
-	  //printf("short_cal = [%i:%lu - %lu]\n", j, short_cal->start, short_cal->end);
+	  //	  printf("short_cal = [%i:%lu - %lu]\n", j, short_cal->start, short_cal->end);
 	  if (!short_cal_first) {
+	    //	    printf("************* SELECT FIRST ***************\n");
 	    short_cal_first = short_cal;
 	    pending_insert = 1;
 	  } else {
@@ -3305,11 +3327,12 @@ size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
   }
 
   free(cals_list);
-
   
   order_cal_linked_list(array_list_size(cal_list), cal_list);
 
   /*printf(":: CALS RESULT: \n");
+
+  /*
   for (int i = 0; i < array_list_size(cal_list); i++) {
     cal_t *cal = array_list_get(i, cal_list);
     printf("\tCAL%i:= Num Seeds: %i, chr %i:(%i)[%lu-%lu], long: %i\n",i, cal->num_seeds,
@@ -3328,9 +3351,9 @@ size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
       printf("\t\t[%i|%i - %i|%i]\n", s->genome_start, s->read_start, s->read_end, s->genome_end);
     }
     printf("\n");
-
   }
   */
+
   return array_list_size(cal_list);
 }
 
