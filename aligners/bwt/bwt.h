@@ -82,6 +82,7 @@ typedef struct cal {
   size_t num_seeds;
   linked_list_t *sr_list;
   linked_list_t *sr_duplicate_list;
+  int read_area;
 } cal_t;
 
 cal_t *cal_new(const size_t chromosome_id,
