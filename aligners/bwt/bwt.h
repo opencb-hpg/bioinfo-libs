@@ -60,13 +60,12 @@ void cal_optarg_free(cal_optarg_t *optarg);
 //-----------------------------------------------------------------------------
 
 typedef struct seed_region {
-  int gap;
-  int run_sw;
   size_t read_start;
   size_t read_end;
   size_t genome_start;
   size_t genome_end;
   int id;
+  void *info;
 } seed_region_t;
 
 seed_region_t *seed_region_new(size_t read_start, size_t read_end, 

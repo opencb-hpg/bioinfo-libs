@@ -134,13 +134,13 @@ void cal_free(cal_t *cal) {
 
 seed_region_t *seed_region_new(size_t read_start, size_t read_end, size_t genome_start, size_t genome_end, int id) {
   seed_region_t *seed_region = (seed_region_t *)malloc(sizeof(seed_region_t));
-  seed_region->gap = 0;
-  seed_region->run_sw = 0;
+
   seed_region->read_start = read_start;
   seed_region->read_end = read_end;
   seed_region->genome_start = genome_start;
   seed_region->genome_end = genome_end;
   seed_region->id = id;
+  seed_region->info = NULL;
 
   return seed_region;
 }
