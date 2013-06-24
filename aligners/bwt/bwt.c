@@ -3054,7 +3054,7 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
   linked_list_item_t *list_item_cal, list_item_seed;
   region_t *region;
   size_t min_cal_size = cal_optarg->min_cal_size;
-  size_t max_cal_distance  = cal_optarg->max_cal_distance;
+  size_t max_cal_distance  = read_length;
   size_t num_mappings = array_list_size(mapping_list);
   size_t chromosome_id;
   short int strand;
