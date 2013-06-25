@@ -2474,6 +2474,7 @@ size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right,
   /*bwt_map_exact_seed(code_seq, len, len - padding_right - extra_seed_size, len - 1 - padding_right,
   		     bwt_optarg, index, mapping_list, seed_id);
   */
+
   free(code_seq);
 
   return array_list_size(mapping_list);
