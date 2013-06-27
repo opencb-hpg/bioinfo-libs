@@ -24,6 +24,7 @@ typedef struct rna_map_region {
 
 
 void rna_map_region_free(void * region);
+int rna_map_region_equal(rna_map_region_t *region1,rna_map_region_t* region2);
 
 void rna_print_region(rna_map_region_t* reg);
 

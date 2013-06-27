@@ -1119,7 +1119,7 @@ size_t bwt_map_exact_seed(char *seq, size_t seq_len,
     l_aux = result.l;
     actual_mappings += (result.l - result.k + 1);
 
-    if (actual_mappings > 150) {//bwt_optarg->filter_seed_mappings) {
+    if (actual_mappings > bwt_optarg->filter_seed_mappings) {
       //discard_seed = 1;
       //break;
       k_aux = result.k;
@@ -3061,6 +3061,9 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
   short int strand;
   size_t start, end;
   linked_list_iterator_t itr;
+
+
+  LOG_DEBUG_F("min cal size = %lu, max. distance = %lu\n", min_cal_size, max_cal_distance);
 
   const unsigned char nstrands = 2;
   
