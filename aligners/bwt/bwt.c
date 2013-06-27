@@ -22,21 +22,21 @@ void bwt_init_replace_table(const char *str, int *table, int *rev_table) {
     rev_table[TT] = 'T';
 
   }
- else {
-   nA = strlen(str);
+  else {
+    nA = strlen(str);
 
-   for (int i = 0; i < nA; i++) {
-     rev_table[i] = toupper(str[i]);
+    for (int i = 0; i < nA; i++) {
+      rev_table[i] = toupper(str[i]);
 
-     table[toupper(str[i])] = i;
-     table[tolower(str[i])] = i;
+      table[toupper(str[i])] = i;
+      table[tolower(str[i])] = i;
 
-     if      (toupper(str[i]) == 'A') AA = i;
-     else if (toupper(str[i]) == 'C') CC = i;
-     else if (toupper(str[i]) == 'G') GG = i;
-     else if (toupper(str[i]) == 'T') TT = i;
-   }
- }
+      if      (toupper(str[i]) == 'A') AA = i;
+      else if (toupper(str[i]) == 'C') CC = i;
+      else if (toupper(str[i]) == 'G') GG = i;
+      else if (toupper(str[i]) == 'T') TT = i;
+    }
+  }
 }
 
 //-----------------------------------------------------------------------------
@@ -59,6 +59,7 @@ char* bwt_decode_Bases(char* dest, char* src, unsigned int length, int *rev_tabl
   dest[length] = '\0';
   return dest;
 }
+
 // end of added by JT and PP
 //-----------------------------------------------------------------------------
 
@@ -523,7 +524,8 @@ bwt_index_t *bwt_index_new(const char *dirname) {
   index->dirname = strdup(dirname);
   
   // added by JTPP
-  index->nucleotides = strdup(readNucleotide(dirname, "Nucleotide"));
+  //index->nucleotides = strdup(readNucleotide(dirname, "Nucleotide"));
+  index->nucleotides = readNucleotide(dirname, "Nucleotide");
   bwt_init_replace_table(index->nucleotides, index->table, index->rev_table);
 
   readUIntVector(&index->h_C, dirname, "C");
@@ -2162,6 +2164,7 @@ size_t bwt_map_forward_inexact_seq(char *seq,
 
 
 	       tot_alignments += (l_start - k_start);
+	       // check filter_read_mappings for bisulfite case
 	       if (tot_alignments >  bwt_optarg->filter_read_mappings) {
 		 filter_exceeded = 1;
 		 LOG_DEBUG_F("Filter exceeded: num. read mappings: %i (total: %i > filter %i)\n", 
