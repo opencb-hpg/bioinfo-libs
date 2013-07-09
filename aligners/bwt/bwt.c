@@ -1339,8 +1339,8 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
   size_t start_mapping;
 
   size_t aux_seq_start, aux_seq_end;
-  array_list_t *mappings = array_list_new(bwt_optarg->filter_read_mappings, 1.25f, 
-						     COLLECTION_MODE_ASYNCHRONIZED);
+  //  array_list_t *mappings = array_list_new(bwt_optarg->filter_read_mappings, 1.25f, 
+  //						     COLLECTION_MODE_ASYNCHRONIZED);
   int discard_seed = 0;
   int actual_mappings = 0;
   struct timeval t_start, t_end;
@@ -1359,16 +1359,6 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
       start_timer(t_start);
       BWExactSearchBackward(code_seq, &index->h_C, &index->h_C1, &index->h_O, &result);
       //BWExactSearchBackward(code_seq, start, end, &index->h_C, &index->h_C1, &index->h_O, result_p);
-      stop_timer(t_start, t_end, time_bwt_seed);
-    } else {
-      // strand -
-      result.pos = start;
-      aux_seq_start = seq_end;
-      aux_seq_end = seq_start;
-      
-      start_timer(t_start);
-      BWExactSearchForward(code_seq, &index->h_rC, &index->h_rC1, &index->h_rO, &result);
-	//BWExactSearchForward(code_seq, start, end, &index->h_rC, &index->h_rC1, &index->h_rO, result_p);
       stop_timer(t_start, t_end, time_bwt_seed);
     }
 
@@ -1413,13 +1403,16 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
 	*/
 	start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
 	// save all into one alignment structure and insert to the list
+
 	region = region_bwt_new(idx, !type, start_mapping, start_mapping + len, aux_seq_start, aux_seq_end, seq_len);
-	
+	assert(region != NULL);
+
 	if (!array_list_insert((void*) region, mapping_list)){
 	  printf("Error to insert item into array list\n");
 	}
-	
+
 	num_mappings++;
+
       }
     }
     //stop_timer(t_start, t_end, time_search_seed);
@@ -1435,7 +1428,7 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
     }
   }
   */
-  array_list_free(mappings, NULL);
+  //  array_list_free(mappings, NULL);
 
   return num_mappings;  
 }
@@ -3576,21 +3569,6 @@ inline size_t seeding_bs(char *code_seq, size_t seq_len, size_t num_seeds,
   n_seeds = num_seeds;
   offset_inc = ceil(1.0f * seq_len / (num_seeds + 1));
   if (offset_inc <= 0) offset_inc = 1;
-  /*
-  if (seed_size * num_seeds > seq_len) {
-    size_t max_seeds = seq_len - min_seed_size;
-    if (num_seeds >= max_seeds) {
-      n_seeds = max_seeds;
-      offset_inc = 1;
-    } else {
-      n_seeds = num_seeds;
-      offset_inc = seq_len / num_seeds;
-    }
-  } else {
-    n_seeds = num_seeds;
-    offset_inc = seq_len / num_seeds;
-  }
-  */
 
   start = 0;
   for (size_t i = 0; i < n_seeds; i++) {
@@ -3606,12 +3584,6 @@ inline size_t seeding_bs(char *code_seq, size_t seq_len, size_t num_seeds,
       if (offset_inc == 1) break;
       start = offset_inc / 2;
     }
-    /*
-    if (start > offset_end) {
-      offset++;
-      start = offset;
-    }
-    */
   }
 
   //  LOG_DEBUG_F("\t\ttotal mappings = %i\n", total_mappings);
@@ -3670,21 +3642,9 @@ size_t bwt_map_exact_seeds_seq_by_num_bs(char *seq, size_t num_seeds,
   
 
   num_mappings = seeding_bs(code_seq, seq_len, num_seeds, seed_size, min_seed_size,
-			    bwt_optarg, index, mapping_list);
+  			    bwt_optarg, index, mapping_list);
   //  printf("\tfirst, num_mappings = %d\n", num_mappings);
-  /*
-  if (num_mappings < 10) {
-    num_mappings += seeding(code_seq, seq_len, max_num_seeds, seed_size - 4, min_seed_size - 4,
-			    bwt_optarg, index, mapping_list);
-    //    printf("\tsecond -4, num_mappings (include first) = %d\n", num_mappings);
-    //  } else if (num_mappings >= 10000) {
-  } else if (num_mappings >= bwt_optarg->filter_read_mappings) {
-    array_list_clear(mapping_list, (void *) region_bwt_free);
-    num_mappings = seeding(code_seq, seq_len, max_num_seeds, seed_size + 2, min_seed_size + 2,
-			   bwt_optarg, index, mapping_list); 
-    //    printf("\tthird +2, num_mappings = %d\n", num_mappings);
- }
-  */
+
   free(code_seq);
   return num_mappings;
 }
