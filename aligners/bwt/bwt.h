@@ -283,6 +283,11 @@ size_t bwt_map_inexact_batch(fastq_batch_t *batch,
 			     array_list_t *mapping_list);
 
 
+size_t bwt_map_inexact_read(fastq_read_t *read, 
+			    bwt_optarg_t *bwt_optarg, 
+			    bwt_index_t *index, 
+			    array_list_t *mapping_list);
+
 //-----------------------------------------------------------------------------
 // seed functions
 //-----------------------------------------------------------------------------

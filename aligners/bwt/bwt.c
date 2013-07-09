@@ -45,11 +45,11 @@ size_t bwt_map_inexact_seq(char *seq,
 			   bwt_index_t *index, 
 			   array_list_t *mapping_list);
 
-size_t bwt_map_inexact_read(fastq_read_t *read, 
+/*size_t bwt_map_inexact_read(fastq_read_t *read, 
 			    bwt_optarg_t *bwt_optarg, 
 			    bwt_index_t *index, 
 			    array_list_t *mapping_list);
-
+*/
 size_t bwt_map_inexact_seqs(char **seqs, 
 			    size_t num_reads,
 			    bwt_optarg_t *bwt_optarg, 
@@ -69,6 +69,22 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
 //------------------------------------------------------------------------------
 
 char *bwt_error_type(char error_kind);
+
+//------------------------------------------------------------------------------
+
+size_t __bwt_map_inexact_read(fastq_read_t *read, 
+			      bwt_optarg_t *bwt_optarg, 
+			      bwt_index_t *index, 
+			      array_list_t *mapping_list);
+
+//------------------------------------------------------------------------------
+
+alignment_t* add_optional_fields(alignment_t *alignment, size_t n_mappings);
+
+//------------------------------------------------------------------------------
+
+void *__bwt_generate_anchor_list(size_t k_start, size_t l_start, int len_calc, bwt_optarg_t *bwt_optarg, 
+				 bwt_index_t *index, int type, array_list_t *anchor_list, int type_anchor);
 
 //------------------------------------------------------------------------------
 // Paratemers for the candidate alignment localizations (CALs)
@@ -692,7 +708,7 @@ void bwt_generate_index_files(char *ref_file, char *output_dir,
 //-----------------------------------------------------------------------------
 // general functions
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_map_seq(char *seq, 
 		   bwt_optarg_t *bwt_optarg, 
 		   bwt_index_t *index, 
@@ -704,9 +720,9 @@ size_t bwt_map_seq(char *seq,
 
   return bwt_map_inexact_seq(seq, bwt_optarg, index, mapping_list);  
 }
-
+*/
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_map_read(fastq_read_t *read, 
 		    bwt_optarg_t *bwt_optarg, 
 		    bwt_index_t *index, 
@@ -718,10 +734,10 @@ size_t bwt_map_read(fastq_read_t *read,
 
   return bwt_map_inexact_read(read, bwt_optarg, index, mapping_list);  
 }
-
+*/
 //-----------------------------------------------------------------------------
 
-size_t bwt_map_seqs(char **seqs, 
+/*size_t bwt_map_seqs(char **seqs, 
 		    size_t num_reads,
 		    bwt_optarg_t *bwt_optarg, 
 		    bwt_index_t *index, 
@@ -735,10 +751,10 @@ size_t bwt_map_seqs(char **seqs,
   
   return bwt_map_inexact_seqs(seqs, num_reads, bwt_optarg, index, 
 			      out_status, mapping_list);  
-}
+			      }*/
 
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_map_batch(fastq_batch_t *batch,
 		     bwt_optarg_t *bwt_optarg, 
 		     bwt_index_t *index, 
@@ -752,7 +768,7 @@ size_t bwt_map_batch(fastq_batch_t *batch,
 
   return bwt_map_inexact_batch(batch, bwt_optarg, index, 
 			       unmapped_batch, mapping_list);  
-}
+}*/
 
 //-----------------------------------------------------------------------------
 // exact functions
@@ -1316,16 +1332,16 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
   size_t *li1 = (size_t *) malloc(len * sizeof(size_t));
   
   BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_O.siz - 2,
-			      k1, l1, &index->h_C, &index->h_C1, &index->h_O, NULL, NULL);
+			      k1, l1, &index->h_C, &index->h_C1, &index->h_O, NULL, NULL, NULL);
   
   BWExactSearchVectorForward(code_seq, start, end, 0, index->h_Oi.siz - 2,
-			     ki1, li1, &index->h_C, &index->h_C1, &index->h_Oi, NULL, NULL);
+			     ki1, li1, &index->h_C, &index->h_C1, &index->h_Oi, NULL, NULL, NULL);
   
   BWExactSearchVectorForward(code_seq, start, end, 0, index->h_rO.siz - 2,
-			     k0, l0, &index->h_rC, &index->h_rC1, &index->h_rO, NULL, NULL);
+			     k0, l0, &index->h_rC, &index->h_rC1, &index->h_rO, NULL, NULL, NULL);
   
   BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_rOi.siz - 2,
-			      ki0, li0, &index->h_rC, &index->h_rC1, &index->h_rOi, NULL, NULL);
+			      ki0, li0, &index->h_rC, &index->h_rC1, &index->h_rOi, NULL, NULL, NULL);
 
   // compare the vectors k and l to get mappings in the genome
   unsigned int num_mappings = 0;
@@ -1484,8 +1500,8 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
 
 //-----------------------------------------------------------------------------
 
-void *bwt_generate_anchor_list(size_t k_start, size_t l_start, int len_calc, bwt_optarg_t *bwt_optarg, 
-			       bwt_index_t *index, int type, array_list_t *anchor_list) {
+void *__bwt_generate_anchor_list(size_t k_start, size_t l_start, int len_calc, bwt_optarg_t *bwt_optarg, 
+				 bwt_index_t *index, int type, array_list_t *anchor_list, int type_anchor) {
 
      size_t idx, key, direction;
      size_t start_mapping;
@@ -1494,6 +1510,8 @@ void *bwt_generate_anchor_list(size_t k_start, size_t l_start, int len_calc, bwt
 
      if (type) {
        direction = 1; 
+     } else {
+       direction = 0; 
      }
   
      if (l_start - k_start < MAX_BWT_ANCHORS) {
@@ -1512,9 +1530,9 @@ void *bwt_generate_anchor_list(size_t k_start, size_t l_start, int len_calc, bwt
 	 idx = binsearch(index->karyotype.offset, index->karyotype.size, key);
 	 if(key + len_calc <= index->karyotype.offset[idx]) {
 	   start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);	
-	   bwt_anchor = bwt_anchor_new(!type, idx - 1, start_mapping, start_mapping + len_calc, FORDWARD_ANCHOR);
+	   bwt_anchor = bwt_anchor_new(!type, idx - 1, start_mapping, start_mapping + len_calc, type_anchor);
 	   array_list_insert(bwt_anchor, anchor_list);
-	//printf("----->(%i)FORDWARD Test k-l: %i:%lu\n", nt_ford, idx, start_mapping);
+	   //printf("----->(%i)FORDWARD Test k-l: %i:%lu\n", nt_ford, idx, start_mapping);
 	 }
        }
      }
@@ -1523,12 +1541,23 @@ void *bwt_generate_anchor_list(size_t k_start, size_t l_start, int len_calc, bwt
 
 //-----------------------------------------------------------------------------
 
-size_t bwt_map_inexact_seq(char *seq, 
-			   bwt_optarg_t *bwt_optarg, 
-			   bwt_index_t *index, 
-			   array_list_t *mapping_list) {
-  
+size_t bwt_map_inexact_read(fastq_read_t *read, 
+			    bwt_optarg_t *bwt_optarg, 
+			    bwt_index_t *index, 
+			    array_list_t *mapping_list) {
 
+  return __bwt_map_inexact_read(read, 
+			       bwt_optarg, 
+			       index, 
+			       mapping_list);  
+}
+
+size_t __bwt_map_inexact_read(fastq_read_t *read, 
+			      bwt_optarg_t *bwt_optarg, 
+			      bwt_index_t *index, 
+			      array_list_t *mapping_list) {
+   
+     char *seq = read->sequence;
      alignment_t *alignment;
      size_t len = strlen(seq);
 
@@ -1551,7 +1580,6 @@ size_t bwt_map_inexact_seq(char *seq,
 	  return 1;
      }
  
-
      char *seq_dup, *seq_strand;
      size_t start = 0;
      size_t end = len - 1;
@@ -1578,7 +1606,7 @@ size_t bwt_map_inexact_seq(char *seq,
      size_t last_k1, last_l1;
      size_t last_ki1, last_li1;
 
-     int back0_nt, ford0_nt, back1_nt, ford1_nt;
+     int back0_nt, forw0_nt, back1_nt, forw1_nt;
 
      BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_O.siz - 2,
 				 k1, l1, &index->h_C, &index->h_C1, &index->h_O,
@@ -1586,18 +1614,18 @@ size_t bwt_map_inexact_seq(char *seq,
      
      BWExactSearchVectorForward(code_seq, start, end, 0, index->h_Oi.siz - 2,
 				ki1, li1, &index->h_C, &index->h_C1, &index->h_Oi,
-				&last_ki1, &last_li1, &ford1_nt);
+				&last_ki1, &last_li1, &forw1_nt);
   
      BWExactSearchVectorForward(code_seq, start, end, 0, index->h_rO.siz - 2,
 				k0, l0, &index->h_rC, &index->h_rC1, &index->h_rO,
-				&last_k0, &last_l0, &ford0_nt);
+				&last_k0, &last_l0, &forw0_nt);
   
      BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_rOi.siz - 2,
 				 ki0, li0, &index->h_rC, &index->h_rC1, &index->h_rOi,
 				 &last_ki0, &last_li0, &back0_nt);
   
 
-     // compare the vectors k and l to get mappings in the genome
+     //compare the vectors k and l to get mappings in the genome
      size_t num_mappings = 0;
      char plusminus[2] = "-+";
      size_t idx, key, direction;
@@ -1613,7 +1641,7 @@ size_t bwt_map_inexact_seq(char *seq,
      array_list_t *mapping_list_filter;
      alignment_t *best_alignment, *aux_alignment;
      size_t best_pos, array_size;
-//  size_t i, j, z;
+     //size_t i, j, z;
      size_t *allocate_pos_alignments;
      size_t k_start, l_start;
 
@@ -1787,23 +1815,9 @@ size_t bwt_map_inexact_seq(char *seq,
 		 //exit(-1);
 		 //error_debug = 1;
 	       }
-	       //printf("IN FUNCTION SEQ_DUP %d :: %s\n", strlen(seq_dup), seq_dup);
-
-
-	       //	 printf("\tstart_mapping = %lu, cigar = %s, type = %i, j (k to l) = %lu\n", start_mapping, cigar, type, j);
-
-
-	       //printf("Max alignments per read %i >= %i\n", r->l - r->k + 1, bwt_optarg->max_alignments_per_read);
-	       //if ( r->l - r->k + 1 > bwt_optarg->filter_read_mappings) {
-	       //k_start = r->k;
-	       //l_start = k_start +  bwt_optarg->filter_read_mappings;
-		 //filter_exceeded = 1;
-		 //type = -1;
-		 //break;
-	       //} else {
 	       k_start = r->k;
 	       l_start = r->l;
-		 //}
+	       //}
 
 	       //printf("%lu-%lu :: num_results %lu\n", k_start, l_start, r_list.num_results);
 	       tot_alignments += (l_start - k_start);
@@ -1831,11 +1845,11 @@ size_t bwt_map_inexact_seq(char *seq,
 			 // save all into one alignment structure and insert to the list
 			 //printf("*****Alignments %i:%lu\n", idx, start_mapping);
 			 alignment = alignment_new();
-
 			 alignment_init_single_end(NULL, strdup(seq_dup), strdup(quality_clipping), !type, 
 						   idx - 1, //index->karyotype.chromosome + (idx-1) * IDMAX,
 						   start_mapping, //index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]), 
 						   strdup(cigar), num_cigar_ops, 254, 1, (num_mappings > 0), 0, NULL, 0, alignment);
+
 			 array_list_insert((void*) alignment, tmp_mapping_list);
 		    }
 	       }//end for k and l
@@ -1900,42 +1914,42 @@ size_t bwt_map_inexact_seq(char *seq,
 	  free(delete_mark);
      } // end for type 
 
-     if (!array_list_size(mapping_list)) { 
+     if (array_list_size(mapping_list) == 0 &&
+	 array_list_get_flag(mapping_list) == 1) {
        //====================================================================================
-       //array_list_set_flag(mapping_list);
-       //size_t sk1, sl1, ski1, sli1;
-       //int nt_back = 0, nt_ford = 0;
-       const int MIN_ANCHOR = 10;
-       const int MAX_BWT_ANCHORS_DISTANCE = 50;
+       //const int MIN_ANCHOR = 10;
+       //const int MAX_BWT_ANCHORS_DISTANCE = 50;
 
-       int found_anchor_1, found_anchor_0;
-       size_t info_l, info_k, info_ki, info_li;
-       int info_nt, info_nti;
-       int back0_nt, ford0_nt, back1_nt, ford1_nt;
-       bwt_anchor_t *bwt_anchor, *bwt_anchor_back, *bwt_anchor_ford;
+       //int found_anchor_1, found_anchor_0;
+       //size_t info_l, info_k, info_ki, info_li;
+       //int info_nt, info_nti;
+       //int back0_nt, forw0_nt, back1_nt, forw1_nt;
+       //bwt_anchor_t *bwt_anchor, *bwt_anchor_back, *bwt_anchor_forw;
 
-       array_list_t *backward_anchor_list_0 = array_list_new(MAX_BWT_REGIONS + 1, 1.25f, 
+       /*       array_list_t *backward_anchor_list_0 = array_list_new(MAX_BWT_REGIONS + 1, 1.25f, 
 							     COLLECTION_MODE_ASYNCHRONIZED);
-       array_list_t *fordward_anchor_list_0 = array_list_new(MAX_BWT_REGIONS + 1, 1.25f, 
+       array_list_t *forward_anchor_list_0 = array_list_new(MAX_BWT_REGIONS + 1, 1.25f, 
 							     COLLECTION_MODE_ASYNCHRONIZED);
        array_list_t *backward_anchor_list_1 = array_list_new(MAX_BWT_REGIONS + 1, 1.25f, 
 							     COLLECTION_MODE_ASYNCHRONIZED);
-       array_list_t *fordward_anchor_list_1 = array_list_new(MAX_BWT_REGIONS + 1, 1.25f, 
+       array_list_t *forward_anchor_list_1 = array_list_new(MAX_BWT_REGIONS + 1, 1.25f, 
 							     COLLECTION_MODE_ASYNCHRONIZED);
+       */
 
+       array_list_t *forward_anchor_list, *backward_anchor_list;       
+       __bwt_generate_anchor_list(last_k1, last_l1, back1_nt, bwt_optarg, 
+				  index, 1, mapping_list, BACKWARD_ANCHOR);
+       __bwt_generate_anchor_list(last_ki1, last_li1, forw1_nt, bwt_optarg, 
+				  index, 1,  mapping_list, FORWARD_ANCHOR);
+       
+       __bwt_generate_anchor_list(last_k0, last_l0, back0_nt, bwt_optarg, 
+				  index, 0,  mapping_list, BACKWARD_ANCHOR);
+       __bwt_generate_anchor_list(last_ki0, last_li0, forw0_nt, bwt_optarg, 
+				  index, 0,  mapping_list, FORWARD_ANCHOR);
 
-       array_list_t *fordward_anchor_list, *backward_anchor_list;       
-       bwt_generate_anchor_list(last_k1, last_l1, back1_nt, bwt_optarg, 
-				index, 1, backward_anchor_list_1);
-       bwt_generate_anchor_list(last_ki1, last_li1, ford1_nt, bwt_optarg, 
-				index, 1, fordward_anchor_list_1);
-       bwt_generate_anchor_list(last_k0, last_l0, back0_nt, bwt_optarg, 
-				index, 0, backward_anchor_list_0);
-       bwt_generate_anchor_list(last_ki0, last_li0, ford1_nt, bwt_optarg, 
-				index, 0, fordward_anchor_list_0);
-	 
-
+       /*
        bwt_anchor_t *max_backward = NULL, *max_fordward = NULL;
+       bwt_anchor_t *bwt_anchor_back_0, *bwt_anchor_ford_0, *bwt_anchor_back_1, *bwt_anchor_ford_1;
        int max_anchor = 0;
        int anchor_tmp, anchor_back, anchor_ford;
        
@@ -1982,10 +1996,13 @@ size_t bwt_map_inexact_seq(char *seq,
 	 array_list_clear(fordward_anchor_list_0, bwt_anchor_free);
 	 array_list_clear(backward_anchor_list_0, bwt_anchor_free);
        } else {
-	 array_list_get(0, fordward_anchor_list_1);
-	 array_list_get(0, backward_anchor_list_1);	
-	 array_list_get(0, fordward_anchor_list_0);
-	 array_list_get(0, backward_anchor_list_0);	 
+	 bwt_anchor_ford_1 = array_list_get(0, fordward_anchor_list_1);
+	 bwt_anchor_back_1 = array_list_get(0, backward_anchor_list_1);	
+	 bwt_anchor_ford_0 = array_list_get(0, fordward_anchor_list_0);
+	 bwt_anchor_back_0 = array_list_get(0, backward_anchor_list_0);
+
+	 
+	 
        }
 
 
@@ -2037,51 +2054,23 @@ size_t bwt_map_inexact_seq(char *seq,
 	     } else {
 
 	     }
-	   }
-
-	 /* k_start = info_ki;
-	 l_start = info_li;
-	 len_calc = info_nti;
-	 
-
-	 k_start = info_k;
-	 l_start = info_l;
-	 len_calc = info_nt;	 
-	 if (type) {
-	   direction = 0;
-	 }       
-	 if (l_start - k_start < MAX_BWT_REGIONS) {
-	   for (size_t j = k_start; j <= l_start; j++) {	   
-	     if (index->S.ratio == 1) {
-	       key = (direction)
-		 ? index->Si.siz - index->Si.vector[j] - len_calc - 1
-		 : index->S.vector[j];
-	     } else {
-	       key = (direction)
-		 ? index->Si.siz - getScompValue(j, &index->Si, &index->h_C,
-						 &index->h_Oi) - len_calc - 1
-		 : getScompValue(j, &index->S, &index->h_C, &index->h_O);
-	     }
-	     
-	     idx = binsearch(index->karyotype.offset, index->karyotype.size, key);
-	     if(key + len_calc <= index->karyotype.offset[idx]) {
-	       start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
-	       bwt_anchor = bwt_anchor_new(!type, idx - 1, start_mapping, start_mapping + len_calc, BACKWARD_ANCHOR);
-	       array_list_insert(bwt_anchor, backward_anchor_list);
-	       //printf("<-----(%i)BACKWARD Test k-l: %i:%lu\n", nt_back, idx, start_mapping);
-	     }
-	   }
+	   }	   
 	 }
-	 */
-
-
-
-	   }
-
-	 }
-
+       */
+     } else if (array_list_get_flag(mapping_list) == 1) {
+       int header_len;
+       size_t num_mapping = array_list_size(mapping_list);
+       for (int i = 0; i < num_mapping; i++) {
+	 alignment = array_list_get(i, mapping_list);
+	 header_len = strlen(read->id);
+	 alignment->query_name = (char *) malloc(sizeof(char) * (header_len + 1));
+	 get_to_first_blank(read->id, header_len, alignment->query_name);
+	 bwt_cigar_cpy(alignment, read->quality);
+	 //alignment->quality = strdup(&(batch->quality[batch->data_indices[i]]));                                                                                     
+	 //************************* OPTIONAL FIELDS ***************************//
+	 alignment = add_optional_fields(alignment, num_mappings);
        }
-       //====================================================================================
+       //array_list_set_flag(0, mapping_list);
      }
 
      free(r_list.list);
@@ -2099,9 +2088,6 @@ size_t bwt_map_inexact_seq(char *seq,
      free(seq_dup);
      free(quality_clipping);
      array_list_free(tmp_mapping_list, NULL);
-
-     //printf("\tOut function\n");
-     //exit(-1);	
 
      return array_list_size(mapping_list);
 
@@ -2160,7 +2146,7 @@ size_t bwt_map_inexact_seqs_by_pos(char *seqs,
 */	  
 
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_map_inexact_read(fastq_read_t *read, 
 			    bwt_optarg_t *bwt_optarg, 
 			    bwt_index_t *index, 
@@ -2191,30 +2177,6 @@ size_t bwt_map_inexact_read(fastq_read_t *read,
       mapping->quality = (char *)malloc(sizeof(char)*(quality_len + 1));
   
       //printf("Read:%s\n", mapping->sequence);
-      /*if (quality_type == START_HARD_CLIPPING){
-	if (mapping->seq_strand == 0) {
-	  memcpy(mapping->quality, 
-		 read->quality, 
-		 quality_len - 1);
-	} else {
-	  reverse_str(read->quality,
-		      mapping->quality, quality_len - 1);
-	}
-	mapping->quality[quality_len - 1] = '\0';	    
-	//printf("HARD START : %s\n", mapping->quality);
-      }else if(quality_type == END_HARD_CLIPPING){
-	if (mapping->seq_strand == 0) {
-	  memcpy(mapping->quality, 
-		 read->quality,
-		 quality_len - 1);
-	} else {
-	  reverse_str(read->quality, 
-		      mapping->quality, quality_len - 1);
-	}
-	mapping->quality[quality_len - 1] = '\0';
-	//printf("HARD END : %s\n", mapping->quality);
-      }else{
-      //printf("ELSE....\n");*/
       if (mapping->seq_strand == 0) {
 	   memcpy(mapping->quality, 
 		  read->quality, 
@@ -2234,9 +2196,9 @@ size_t bwt_map_inexact_read(fastq_read_t *read,
   
   return num_mappings;
 }
-
+*/
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_map_inexact_seqs(char **seqs, 
 			    size_t num_reads,
 			    bwt_optarg_t *bwt_optarg, 
@@ -2290,10 +2252,10 @@ size_t bwt_map_inexact_seqs(char **seqs,
   
   return array_list_size(mapping_list);
 }
-
+*/
 
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_map_inexact_batch(fastq_batch_t *batch,
 			     bwt_optarg_t *bwt_optarg, 
 			     bwt_index_t *index, 
@@ -2392,7 +2354,7 @@ size_t bwt_map_inexact_batch(fastq_batch_t *batch,
   return array_list_size(mapping_list);
 
 }
-
+*/
 //-----------------------------------------------------------------------------				  
 /*
 size_t bwt_map_inexact_array_list(array_list_t *reads,
@@ -2567,6 +2529,7 @@ alignment_t* add_optional_fields(alignment_t *alignment, size_t n_mappings) {
 }
 
 //-----------------------------------------------------------------------------
+/*
 size_t bwt_map_inexact_array_list(array_list_t *reads,
 				  bwt_optarg_t *bwt_optarg, 
 				  bwt_index_t *index,
@@ -2608,9 +2571,9 @@ size_t bwt_map_inexact_array_list(array_list_t *reads,
 	get_to_first_blank(fq_read->id, header_len, alignment->query_name);
 	bwt_cigar_cpy(alignment, fq_read->quality);
 	//alignment->quality = strdup(&(batch->quality[batch->data_indices[i]]));                                                                                     
-	//************************* OPTIONAL FIELDS ***************************//
+
 	alignment = add_optional_fields(alignment, num_mappings);
-	//*********************** OPTIONAL FIELDS END ************************//
+
       }
     } else {
       unmapped_indices[(*num_unmapped)++] = i;
@@ -2619,9 +2582,9 @@ size_t bwt_map_inexact_array_list(array_list_t *reads,
     }
   }
 }
-
+*/
 //-----------------------------------------------------------------------------
-
+/*
 void bwt_map_inexact_array_list_by_filter(array_list_t *reads,
 					  bwt_optarg_t *bwt_optarg, 
 					  bwt_index_t *index,
@@ -2657,9 +2620,9 @@ void bwt_map_inexact_array_list_by_filter(array_list_t *reads,
 	get_to_first_blank(fq_read->id, header_len, alignment->query_name);
 	bwt_cigar_cpy(alignment, fq_read->quality);
 	
-	//************************* OPTIONAL FIELDS ***************************//
+
 	alignment = add_optional_fields(alignment, num_mappings);
-	//*********************** OPTIONAL FIELDS END ************************//
+
       }
     } else if (array_list_get_flag(lists[i]) != 2) {
 	unmapped_indices[(*num_unmapped)++] = i;
@@ -2667,7 +2630,7 @@ void bwt_map_inexact_array_list_by_filter(array_list_t *reads,
     }
   } 
 }
-
+*/
 //-----------------------------------------------------------------------------
 /*
 void bwt_map_inexact_batch_by_filter(fastq_batch_t *batch,
