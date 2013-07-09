@@ -39,8 +39,8 @@
 
 #define MAX_MISMATCHES  20
 
-#define INDEX_EXOME 24000
-#define IDMAX 100
+#define INDEX_EXOME 300000
+#define IDMAX 200
 
 #define MAXLINE     200
 #define MAXLINECOMP  50
@@ -259,10 +259,16 @@ typedef struct {
 } byte_vector;
 
 typedef struct {
+  /*
   char chromosome[INDEX_EXOME*IDMAX];
   unsigned int start[INDEX_EXOME];
   unsigned int end[INDEX_EXOME];
   unsigned int offset[INDEX_EXOME];
+  */
+  char *chromosome;
+  unsigned int *start;
+  unsigned int *end;
+  unsigned int *offset;
   unsigned int size;
 } exome;
 
@@ -370,9 +376,11 @@ inline void copy_result(result *dest, result *orig) {
 }
 
 inline void add_result(result *orig, results_list *r_list) {
-
+  //printf("\tCALL to add result, %i-%i\n", 
+  //	 r_list->num_results, r_list->max_results);
   if (r_list->num_results < r_list->max_results) {
-
+    //printf("\t------------>ADD RESULT k=%lu, l=%lu, start=%i, pos=%i, end=%i\n",
+    //   orig->k, orig->l, orig->start, orig->pos,orig->end);
     result *dest;
     dest = &r_list->list[r_list->num_results];
     r_list->num_results++;

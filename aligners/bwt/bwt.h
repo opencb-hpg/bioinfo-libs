@@ -25,6 +25,8 @@
 #define NO_CALS 1
 #define EXTRA_CALS 2
 
+#define BACKWARD_ANCHOR 1
+#define FORWARD_ANCHOR  2
 
 #ifndef MAX
   #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -98,6 +100,19 @@ cal_t *cal_new(const size_t chromosome_id,
                const linked_list_t *sr_duplicate_list);
 
 void cal_free(cal_t *cal);
+
+//-----------------------------------------------------------------------------
+
+typedef struct bwt_anchor {
+  int strand;
+  int chromosome;
+  size_t start;
+  size_t end;
+  int type;
+} bwt_anchor_t;
+
+bwt_anchor_t *bwt_anchor_new(int strand, int chromosome, size_t start, size_t end, int type);
+void bwt_anchor_free(bwt_anchor_t *bwt_anchor);
 
 //-----------------------------------------------------------------------------
 

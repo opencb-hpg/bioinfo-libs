@@ -155,8 +155,12 @@ void BWExactPartialResultsForward(char *W, vector *C, vector *C1, comp_matrix *O
 void BWBranchPartialResultsBackward(char *W, vector *C, vector *C1, comp_matrix *O, results_list *rl_prev, results_list *rl_next);
 void BWBranchPartialResultsForward(char *W, vector *C, vector *C1, comp_matrix *O, results_list *rl_prev, results_list *rl_next);
 
-void BWExactSearchVectorBackward(char *W, int start, int end, size_t k, size_t l, size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O);
-void BWExactSearchVectorForward(char *W, int start, int end, size_t k, size_t l, size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O);
+void BWExactSearchVectorBackward(char *W, int start, int end, size_t k, size_t l, 
+				 size_t *vec_k, size_t *vec_l, vector *C, vector *C1, 
+				 comp_matrix *O, size_t *last_k, size_t *last_l, int *nt);
+void BWExactSearchVectorForward(char *W, int start, int end, size_t k, size_t l, 
+				size_t *vec_k, size_t *vec_l, vector *C, vector *C1,
+				comp_matrix *O, size_t *last_k, size_t *last_l, int *nt);
 
 void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t *vec_ki, size_t *vec_li, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, results_list *r_list);
 
