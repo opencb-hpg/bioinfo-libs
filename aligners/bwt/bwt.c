@@ -1368,7 +1368,8 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
     l_aux = result.l;
     actual_mappings += (result.l - result.k + 1);
 
-    if (actual_mappings > 150) {//bwt_optarg->filter_seed_mappings) {
+    //if (actual_mappings > 150) {//bwt_optarg->filter_seed_mappings) {
+    if (actual_mappings > bwt_optarg->filter_seed_mappings) {
       //discard_seed = 1;
       //break;
       k_aux = result.k;
