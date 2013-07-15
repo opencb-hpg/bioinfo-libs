@@ -25,8 +25,12 @@
 #define NO_CALS 1
 #define EXTRA_CALS 2
 
-#define BACKWARD_ANCHOR 1
-#define FORWARD_ANCHOR  2
+#define BACKWARD_ANCHOR 0
+#define FORWARD_ANCHOR  1
+
+#define EXTRA_SEED_NONE 0
+#define EXTRA_SEED_START 1
+#define EXTRA_SEED_END 2
 
 #ifndef MAX
   #define MAX(a, b) (((a) > (b)) ? (a) : (b))
@@ -83,12 +87,14 @@ typedef struct cal {
   size_t start;
   size_t end;
   size_t num_seeds;
-  linked_list_t *sr_list;
-  linked_list_t *sr_duplicate_list;
   int read_area;
-  void *info;
   int l_flank;
   int r_flank;
+  linked_list_t *sr_list;
+  linked_list_t *sr_duplicate_list;
+  linked_list_t *candidates_seeds_start;
+  linked_list_t *candidates_seeds_end;
+  void *info;
 } cal_t;
 
 cal_t *cal_new(const size_t chromosome_id,
@@ -304,6 +310,11 @@ size_t bwt_map_exact_seeds_seq_by_num(char *seq, size_t num_seeds,
 				      bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
 				      array_list_t *mapping_list);
 
+size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position, 
+					  char *seq, int seed_size, int min_seed_size,
+					  bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+					  array_list_t *mapping_list, int extra_seed,
+					  int *last_seed_id);
 //-----------------------------------------------------------------------------
 
 size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_size,
