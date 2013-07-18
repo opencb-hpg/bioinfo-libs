@@ -92,8 +92,8 @@ typedef struct cal {
   int r_flank;
   linked_list_t *sr_list;
   linked_list_t *sr_duplicate_list;
-  linked_list_t *candidates_seeds_start;
-  linked_list_t *candidates_seeds_end;
+  array_list_t *candidates_seeds_start;
+  array_list_t *candidates_seeds_end;
   void *info;
 } cal_t;
 
@@ -320,6 +320,16 @@ size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position,
 size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_size,
 				 bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
 				 array_list_t *mapping_list);
+
+
+size_t bwt_map_inexact_seeds_by_region(int start_position, int end_position, 
+				       int chromosome_target, int start_target,
+				       int end_target,
+				       char *seq, size_t seed_size,
+				       size_t min_seed_size,
+				       bwt_optarg_t *bwt_optarg,
+				       bwt_index_t *index, 
+				       array_list_t *mapping_list);
 
 //-----------------------------------------------------------------------------
 // cal functions

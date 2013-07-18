@@ -137,8 +137,8 @@ cal_t *cal_new(const size_t chromosome_id,
   cal->read_area = 0;
   cal->info = NULL;
 
-  cal->candidates_seeds_start = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
-  cal->candidates_seeds_end = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
+  cal->candidates_seeds_start = array_list_new(10, 1.25f, COLLECTION_MODE_ASYNCHRONIZED);
+  cal->candidates_seeds_end = array_list_new(10, 1.25f, COLLECTION_MODE_ASYNCHRONIZED);
   //TODO: Good CAL Selector??Mmm...
   //First, seed size sumation  
 
@@ -1311,8 +1311,10 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
 
   char *code_seq = &seq[seq_start];
   size_t start = 0;
+
   size_t end = seq_end - seq_start;
   size_t len = seq_end - seq_start + 1;
+
   const int max_mappings = 50;
   //  size_t len = strlen(seq);
   //  size_t start = 0;
@@ -1331,19 +1333,22 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
   size_t *ki1 = (size_t *) malloc(len * sizeof(size_t));
   size_t *li1 = (size_t *) malloc(len * sizeof(size_t));
   
+  size_t aux_val;
+
   BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_O.siz - 2,
-			      k1, l1, &index->h_C, &index->h_C1, &index->h_O, NULL, NULL, NULL);
+			      k1, l1, &index->h_C, &index->h_C1, &index->h_O, &aux_val, &aux_val, &aux_val);
   
   BWExactSearchVectorForward(code_seq, start, end, 0, index->h_Oi.siz - 2,
-			     ki1, li1, &index->h_C, &index->h_C1, &index->h_Oi, NULL, NULL, NULL);
+			     ki1, li1, &index->h_C, &index->h_C1, &index->h_Oi, &aux_val, &aux_val, &aux_val);
   
   BWExactSearchVectorForward(code_seq, start, end, 0, index->h_rO.siz - 2,
-			     k0, l0, &index->h_rC, &index->h_rC1, &index->h_rO, NULL, NULL, NULL);
+			     k0, l0, &index->h_rC, &index->h_rC1, &index->h_rO, &aux_val, &aux_val, &aux_val);
   
   BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_rOi.siz - 2,
-			      ki0, li0, &index->h_rC, &index->h_rC1, &index->h_rOi, NULL, NULL, NULL);
+			      ki0, li0, &index->h_rC, &index->h_rC1, &index->h_rOi, &aux_val, &aux_val, &aux_val);
 
   // compare the vectors k and l to get mappings in the genome
+  int aux_seq_start, aux_seq_end;
   unsigned int num_mappings = 0;
   char plusminus[2] = "-+";
   size_t idx, key, direction, error, pos;
@@ -1365,13 +1370,15 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
     r_list.read_index = 0;
 
     if (type == 1) {
-      //      BWIterativeSearch1(code_seq, start, end, k1, l1, ki1, li1, 
-      //			 &index->h_C, &index->h_C1, &index->h_O, &index->h_Oi, r_list);
       BWSearch1(code_seq, start, end, k1, l1, ki1, li1, 
 		&index->h_C, &index->h_C1, &index->h_O, &index->h_Oi, &r_list);
+
+      aux_seq_start = seq_start;
+      aux_seq_end = seq_end;
     } else {
-	//      BWIterativeSearch1(code_seq, start, end, ki0, li0, k0, l0, 
-	//     			 &index->h_rC, &index->h_rC1, &index->h_rOi, &index->h_rO, r_list);
+      aux_seq_start = seq_len - seq_end - 1;
+      aux_seq_end = seq_len - seq_start - 1;
+
       BWSearch1(code_seq, start, end, ki0, li0, k0, l0, 
 		&index->h_rC, &index->h_rC1, &index->h_rOi, &index->h_rO, &r_list);
     }
@@ -1433,7 +1440,216 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
 	  */
 	  start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
 	  // save all into one alignment structure and insert to the list
-	  region = region_bwt_new(idx, !type, start_mapping, start_mapping + end, seq_start, seq_end, seq_len, seed_id);
+	  region = region_bwt_new(idx, !type, start_mapping, start_mapping + end, aux_seq_start, aux_seq_end, seq_len, seed_id);
+	  printf("Report Region in position [%i:%lu-%lu]\n", idx, start_mapping, start_mapping + end);
+	    
+	  if(!array_list_insert((void*) region, tmp_mapping_list)){
+	    printf("Error to insert item into array list\n");
+	  }
+	  num_mappings++;
+	}
+      }
+    }
+
+    //
+    //
+    //Search for equal BWT mappings and set the mappings that will be delete
+    int n_mappings = array_list_size(tmp_mapping_list);
+    region_t *reg_1, *reg_2;
+    unsigned int *delete_mark = (unsigned int *)calloc(n_mappings, sizeof(unsigned int));
+    const int max_distance = 10;
+    //printf("------------------Num mappings %i---------------\n", n_mappings);     
+    for (int a1 = n_mappings - 1; a1 >= 1; a1--) {
+      if (!delete_mark[a1]) {
+	reg_1 = array_list_get(a1, tmp_mapping_list);
+	//printf("Alig1(%i): %i chromosome, %i seq_strand, %s cigar:\n", a1, alig_1->chromosome, alig_1->seq_strand, alig_1->cigar);
+	for (int a2 = a1 - 1; a2 >= 0; a2--) {
+	  reg_2 = array_list_get(a2, tmp_mapping_list);
+	  size_t dist = abs(reg_1->start - reg_2->start);
+	  //printf("\t Alig2(%i): %i chromosome, %i seq_strand, %i dist, %i delete mark, %s cigar\n", a2, alig_2->chromosome, alig_2->seq_strand, dist, delete_mark[a2],alig_2->cigar );
+	  if (reg_1->chromosome_id == reg_2->chromosome_id &&
+	      dist < max_distance && 
+	      !delete_mark[a2]) {
+	    //Same chromosome && same position
+	    delete_mark[a2] = 1;
+	  }
+	}
+      }
+    }
+    //Delete all set mappings
+    for (int m = n_mappings - 1; m >= 0; m--) {
+      reg_1 = array_list_remove_at(m, tmp_mapping_list);
+      if (delete_mark[m]) {
+	region_bwt_free(reg_1);
+      } else {
+	array_list_insert((void*) reg_1, mapping_list);
+	num_mappings++;
+      }
+    }
+    free(delete_mark);
+  } // end for type 
+
+  //free(code_seq);
+  free(r_list.list);
+  free(k0);
+  free(l0);
+  free(k1);
+  free(l1);
+  free(ki0);
+  free(li0);
+  free(ki1);
+  free(li1);
+  array_list_free(tmp_mapping_list, NULL);
+
+  return num_mappings;
+
+}
+
+size_t bwt_map_inexact_seed_by_region(char *seq, size_t seq_len, 
+				      size_t seq_start, size_t seq_end,
+				      bwt_optarg_t *bwt_optarg, 
+				      bwt_index_t *index, 
+				      array_list_t *mapping_list,
+				      int seed_id, int chromosome_id,
+				      size_t start_pos, 
+				      size_t end_pos) {  
+  region_t *region; 
+
+  char *code_seq = &seq[seq_start];
+  size_t start = 0;
+
+  size_t end = seq_end - seq_start;
+  size_t len = seq_end - seq_start + 1;
+
+  const int max_mappings = 50;
+  //  size_t len = strlen(seq);
+  //  size_t start = 0;
+  //  size_t end = len - 1;
+  size_t start_mapping;
+  //  char *code_seq = (char *) calloc(len, sizeof(char));
+  //  replaceBases(seq, code_seq, len);
+
+  // calculate vectors k and l
+  size_t *k0 = (size_t *) malloc(len * sizeof(size_t));
+  size_t *l0 = (size_t *) malloc(len * sizeof(size_t));
+  size_t *k1 = (size_t *) malloc(len * sizeof(size_t));
+  size_t *l1 = (size_t *) malloc(len * sizeof(size_t));
+  size_t *ki0 = (size_t *) malloc(len * sizeof(size_t));
+  size_t *li0 = (size_t *) malloc(len * sizeof(size_t));
+  size_t *ki1 = (size_t *) malloc(len * sizeof(size_t));
+  size_t *li1 = (size_t *) malloc(len * sizeof(size_t));
+  
+  size_t aux_val;
+
+  BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_O.siz - 2,
+			      k1, l1, &index->h_C, &index->h_C1, &index->h_O, &aux_val, &aux_val, &aux_val);
+  
+  BWExactSearchVectorForward(code_seq, start, end, 0, index->h_Oi.siz - 2,
+			     ki1, li1, &index->h_C, &index->h_C1, &index->h_Oi, &aux_val, &aux_val, &aux_val);
+  
+  BWExactSearchVectorForward(code_seq, start, end, 0, index->h_rO.siz - 2,
+			     k0, l0, &index->h_rC, &index->h_rC1, &index->h_rO, &aux_val, &aux_val, &aux_val);
+  
+  BWExactSearchVectorBackward(code_seq, start, end, 0, index->h_rOi.siz - 2,
+			      ki0, li0, &index->h_rC, &index->h_rC1, &index->h_rOi, &aux_val, &aux_val, &aux_val);
+
+  // compare the vectors k and l to get mappings in the genome
+  int aux_seq_start, aux_seq_end;
+  unsigned int num_mappings = 0;
+  char plusminus[2] = "-+";
+  size_t idx, key, direction, error, pos;
+  //results_list *r_list;
+  results_list r_list;
+  result *r;
+  alignment_t *alignment;
+  size_t k_start, l_start;
+  size_t len_calc;
+  array_list_t *tmp_mapping_list = array_list_new(bwt_optarg->filter_read_mappings, 1.25f,
+						  COLLECTION_MODE_ASYNCHRONIZED);
+  new_results_list(&r_list, 20000);
+
+  for (int type = 1; type >= 0; type--) {
+    //    r_list = (results_list *) calloc(1, sizeof(results_list));
+    //new_results_list(r_list, 2000);
+    r_list.num_results = 0;
+    //r_list->n = 0;
+    r_list.read_index = 0;
+
+    if (type == 1) {
+      BWSearch1(code_seq, start, end, k1, l1, ki1, li1, 
+		&index->h_C, &index->h_C1, &index->h_O, &index->h_Oi, &r_list);
+
+      aux_seq_start = seq_start;
+      aux_seq_end = seq_end;
+    } else {
+      aux_seq_start = seq_len - seq_end - 1;
+      aux_seq_end = seq_len - seq_start - 1;
+
+      BWSearch1(code_seq, start, end, ki0, li0, k0, l0, 
+		&index->h_rC, &index->h_rC1, &index->h_rOi, &index->h_rO, &r_list);
+    }
+
+
+    for (size_t ii = 0; ii < r_list.num_results; ii++) {
+      //for (size_t ii = 0; ii < r_list->n; ii++) {
+      r = &r_list.list[ii];
+
+      if(!r->num_mismatches)
+	error = 0;
+      else
+	error = r->err_kind[0];
+
+      len_calc = len;
+      if (error == DELETION) {
+	len_calc--;
+      } else if (error == INSERTION) {
+	len_calc++;
+      }
+
+      if ((r->l - r->k + 1) < max_mappings) {//bwt_optarg->filter_read_mappings) {
+	k_start = r->k;
+	l_start = r->l;
+      }else  {
+	k_start = r->k;
+	l_start = r->k + 1;
+      }
+
+      if (type) {
+	direction = r->dir;
+      } else {
+	direction = !r->dir;
+      }
+      
+      //k_start = r->k;
+      //l_start = r->l;      
+
+      for (size_t j = k_start; j <= l_start; j++) {
+	if (index->S.ratio == 1) {
+	  key = (direction)
+	    ? index->Si.siz - index->Si.vector[j] - len_calc - 1
+	    : index->S.vector[j];
+	} else {
+	  key = (direction)
+	    ? index->Si.siz - getScompValue(j, &index->Si, &index->h_C,
+					    &index->h_Oi) - len_calc - 1
+	    : getScompValue(j, &index->S, &index->h_C, &index->h_O);
+	}
+
+	idx = binsearch(index->karyotype.offset, index->karyotype.size, key);
+	if (idx != chromosome_id) { continue; }
+
+	if(key + len_calc <= index->karyotype.offset[idx]) {
+	    //printf("\tvalue idx=%d\n", idx);
+	  /*printf("\t%s\t%c\t%s %u %s error: %s, pos: %i, base: %i ",
+		 "nothing", plusminus[type],
+		 index->karyotype.chromosome + (idx-1) * IDMAX,
+		 index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]),
+		 seq, bwt_error_type(r->err_kind[0]), r->position[0], r->base[0]);
+	  */
+	  start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
+	  if (start_mapping < start_pos || start_mapping > end_pos) { continue; }
+	  // save all into one alignment structure and insert to the list
+	  region = region_bwt_new(idx, !type, start_mapping, start_mapping + end, aux_seq_start, aux_seq_end, seq_len, seed_id);
 	  //printf("Report Region in position [%i:%lu-%lu]\n", idx, start_mapping, start_mapping + end);
 	    
 	  if(!array_list_insert((void*) region, tmp_mapping_list)){
@@ -1873,14 +2089,13 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 		    }
 	       }//end for k and l
 	  }//end for 
-
+	  
 	  if (filter_exceeded) {
-	    //printf("Limit Exceeded %d\n", bwt_optarg->filter_read_mappings);
 	    array_list_clear(tmp_mapping_list, alignment_free);
 	    array_list_set_flag(2, mapping_list);
 	    break;
 	  }
-	  
+
 	  //
 	  //
 	  //Search for equal BWT mappings and set the mappings that will be delete
@@ -1930,7 +2145,7 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 	    alig_1 = array_list_get(0, mapping_list); 
 	    set_secondary_alignment(0, alig_1);
 	  }
-	  free(delete_mark);
+	  free(delete_mark);	  	  
      } // end for type 
 
      if (array_list_size(mapping_list) == 0) {
@@ -2592,6 +2807,7 @@ void bwt_map_inexact_batch_by_filter(fastq_batch_t *batch,
   }
 }
 */
+
 //-----------------------------------------------------------------------------
 
 size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_size,
@@ -2600,7 +2816,7 @@ size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_si
   
   size_t len = strlen(seq);
   size_t offset, num_seeds = len / seed_size;
-  char *code_seq = (char *) calloc(len, sizeof(char));
+  char *code_seq = (char *) calloc(len + 1, sizeof(char));
   int seq_id = 0;
   //char aux_seq[50];
 
@@ -2636,7 +2852,51 @@ size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_si
 }
 
 //-----------------------------------------------------------------------------
+size_t bwt_map_inexact_seeds_by_region(int start_position, int end_position, 
+				       int chromosome_target, int start_target,
+				       int end_target,
+				       char *seq, size_t seed_size,
+				       size_t min_seed_size,
+				       bwt_optarg_t *bwt_optarg,
+				       bwt_index_t *index, 
+				       array_list_t *mapping_list) {
+  int len_region = end_position - start_position;
+  size_t len = strlen(seq);
+  size_t offset, num_seeds = len_region / seed_size;
+  char *code_seq = (char *) calloc(len + 1, sizeof(char));
+  int seq_id = 1;
+  char aux_seq[50];
+  replaceBases(seq, code_seq, len);
 
+  // first 'pasada'
+  offset = start_position;
+  for (size_t i = 0; i < num_seeds; i++) {
+    memcpy(aux_seq, seq + offset, seed_size);
+    aux_seq[seed_size] = '\0';
+    printf("Seq(%i-%i): %s\n", offset, offset + seed_size - 1, aux_seq);
+
+    bwt_map_inexact_seed_by_region(code_seq, len, offset, offset + seed_size - 1,
+				   bwt_optarg, index, mapping_list, seq_id++, 
+				   chromosome_target, start_target, end_target);
+
+    //printf("\tregions found: %i\n", array_list_size(mapping_list));
+    offset += seed_size;
+  }
+
+  if (len_region % seed_size >= seed_size / 4) {
+    bwt_map_inexact_seed_by_region(code_seq, len, end_position - seed_size, end_position - 1,
+				   bwt_optarg, index, mapping_list, seq_id++, 
+				   chromosome_target, start_target, end_target);
+  }
+
+  free(code_seq);
+
+  return array_list_size(mapping_list);
+  
+}
+
+//-----------------------------------------------------------------------------
+/*
 size_t bwt_map_exact_seeds_seq2(int padding_left, int padding_right, 
 			       char *seq, size_t seed_size, size_t min_seed_size,
 			       bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
@@ -2705,7 +2965,7 @@ size_t bwt_map_exact_seeds_seq2(int padding_left, int padding_right,
   return array_list_size(mapping_list);
   
 }
-
+*/
 size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right, 
 			       char *seq, size_t seed_size, size_t min_seed_size,
 			       bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
@@ -2725,7 +2985,7 @@ size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right,
   padding_right = padding_left;
 
   int extra_seed_size = 16;//seed_size;
-  int first_seed = 16;
+  //int first_seed = 16;
 
   //Extra seed for splice junctions
   bwt_map_exact_seed(code_seq, len, padding_left, padding_left + extra_seed_size - 1,
@@ -2742,15 +3002,16 @@ size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right,
   }
   
   //Last seed
-  if (len % seed_size >= seed_size/4) {
+  if (len % seed_size > 0) {
     bwt_map_exact_seed(code_seq, len, len - seed_size, len - 1,
 		       bwt_optarg, index, mapping_list, seed_id++);
   }
 
-  //Extra seed for splice junctions
-  bwt_map_exact_seed(code_seq, len, len - first_seed - padding_right, len - padding_right - 1,
-		     bwt_optarg, index, mapping_list, seed_id++);
-
+  if (len % seed_size != padding_right) {
+    //Extra seed for splice junctions
+    bwt_map_exact_seed(code_seq, len, len - extra_seed_size - padding_right, len - padding_right - 1,
+		       bwt_optarg, index, mapping_list, seed_id++);
+  }
 
   free(code_seq);
 
@@ -2772,8 +3033,8 @@ size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position,
   int offset, num_seeds;
   
   char *code_seq = (char *) calloc(strlen(seq), sizeof(char));
-
   int extra_seed_offset = seed_size / 2;
+  int extra_seed_size = 16;
   //replaceBases(seq + start_position, code_seq, len);
   replaceBases(seq, code_seq, strlen(seq));
 
@@ -2784,10 +3045,9 @@ size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position,
   //printf("SEQ: %s\n", aux_seq);
 
   if (extra_seed == EXTRA_SEED_START &&
-      (len - extra_seed_offset) > seed_size &&
-      extra_seed_offset != len % seed_size) {
+      (len - extra_seed_offset) > seed_size) {
     //printf("\t Extra Seed Start [%i-%i]\n", extra_seed_offset + start_position, extra_seed_offset + start_position + seed_size);
-    bwt_map_exact_seed(code_seq, strlen(seq), extra_seed_offset + start_position, extra_seed_offset + start_position + seed_size,
+    bwt_map_exact_seed(code_seq, strlen(seq), extra_seed_offset + start_position, extra_seed_offset + start_position + extra_seed_size,
 		       bwt_optarg, index, mapping_list, seed_id++);
   }
 
@@ -2802,7 +3062,7 @@ size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position,
   }
   
   //Last seed
-  if (len % seed_size >= seed_size/4) {
+  if (len % seed_size > 0) {
     //printf("\t Seed [%i-%i]\n", end_position - seed_size, end_position - 1);
     bwt_map_exact_seed(code_seq, strlen(seq), end_position - seed_size, end_position - 1,
 		       bwt_optarg, index, mapping_list, seed_id++);
@@ -2812,7 +3072,7 @@ size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position,
       (len - extra_seed_offset) > seed_size &&
       extra_seed_offset != len % seed_size) {
     //printf("\t Extra Seed End [%i-%i]\n", end_position - extra_seed_offset - seed_size, end_position - extra_seed_offset);
-    bwt_map_exact_seed(code_seq, strlen(seq), end_position - extra_seed_offset - seed_size, end_position - extra_seed_offset,
+    bwt_map_exact_seed(code_seq, strlen(seq), end_position - extra_seed_offset - extra_seed_size, end_position - extra_seed_offset,
 		       bwt_optarg, index, mapping_list, seed_id++);
   }
 
@@ -3244,7 +3504,7 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
   } else {
     item = (short_cal_t *)linked_list_iterator_curr(itr);
     while (item != NULL) {
-      //printf("\t compare with %lu\n", item->start);
+      printf("\t compare with %lu\n", item->start);
       if (start < item->start) {
 	if (end + max_cal_distance < item->start) {
 	  /*********************************************
@@ -3396,7 +3656,7 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 
   //  printf("::: CALS PROCESS with max seeds %i:::\n", *max_seeds);
   short_cal_t *short_cal, *short_cal_aux;
-  linked_list_item_t *list_item_cal, *list_item_aux;
+  linked_list_item_t *list_item_cal, *list_item_aux, *list_item_s;
   region_t *region;
   size_t min_cal_size = cal_optarg->min_cal_size;
   size_t max_cal_distance  = read_length;
@@ -3405,9 +3665,9 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
   short int strand;
   size_t start, end;
   int seed_size = 16; //Change parameter
-  int min_intron_size = 1000000; //Change parameter
+  int min_intron_size = 500000; //Change parameter
 
-  linked_list_iterator_t itr;
+  linked_list_iterator_t itr, itr2;
 
   const unsigned char nstrands = 2;
   
@@ -3437,6 +3697,7 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
   size_t seq_start, seq_end;
   seed_region_t *s, *s_first, *s_last, *s_aux, *seed_region;
   cal_t *cal;
+
   for (unsigned int j = 0; j < nchromosomes; j++) {
     for (unsigned int i = 0; i < nstrands; i++) {
       linked_list_iterator_init(cals_list[i][j], &itr);
@@ -3466,7 +3727,7 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 	  short_cal->sr_duplicate_list = NULL;
 
 	  //============= Search if one seed map near to this CAL ================//
-	  /*s_first = (seed_region_t *)linked_list_get_first(list_aux);	  
+	  s_first = (seed_region_t *)linked_list_get_first(list_aux);	  
 	  s_last = (seed_region_t *)linked_list_get_last(list_aux);
 
 	  if (s_first && s_first->read_start > seed_size) {
@@ -3479,14 +3740,21 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 		  short_cal->start - short_cal_aux->end >= min_intron_size) {
 		break;
 	      }
+	   
+	      linked_list_iterator_init(short_cal_aux->sr_list, &itr2);
+	      s = linked_list_iterator_curr(&itr2);
+	      while (s != NULL) {
+		if (s->read_end < s_first->read_start) {
+		  seed_region = seed_region_new(s->read_start, s->read_end,
+						s->genome_start, s->genome_end, 0);	
+		  array_list_insert(seed_region, cal->candidates_seeds_start);
+		}
+		s = linked_list_iterator_next(&itr2);
 
-	      seed_region = seed_region_new(short_cal_aux->seq_start, short_cal_aux->seq_end,
-					    short_cal_aux->start, short_cal_aux->end, 0);
-
-	      linked_list_insert_first(seed_region, cal->candidates_seeds_start);
-	      list_item_aux = list_item_aux->prev;
+	      }
+	      list_item_aux = list_item_aux->prev;	      
 	    }
-	  } 
+	  }	
 
 	  if (s_last && s_last->read_end < read_length - seed_size) {
 	    // Search start seed ----->
@@ -3499,14 +3767,20 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 		break;
 	      }
 
-	      seed_region = seed_region_new(short_cal_aux->seq_start, short_cal_aux->seq_end,
-					    short_cal_aux->start, short_cal_aux->end, 1);
-
-	      linked_list_insert_first(seed_region, cal->candidates_seeds_start);
+	      linked_list_iterator_init(short_cal_aux->sr_list, &itr2);
+	      s = linked_list_iterator_curr(&itr2);
+	      while (s != NULL) {
+		if (s->read_start > s_last->read_end) {
+		  seed_region = seed_region_new(s->read_start, s->read_end,
+						s->genome_start, s->genome_end, 1);	
+		  array_list_insert(seed_region, cal->candidates_seeds_end);
+		}
+		s = linked_list_iterator_next(&itr2);
+	      }
 	      list_item_aux = list_item_aux->next;
 	    }	    
-	  } 
-	  */
+	  }
+	  	  
 	  //printf("\t First Seed [%i-%i]\n", s_first->read_start, s_first->read_end);
 	  //printf("\t Last Seed [%i-%i]\n", s_last->read_start, s_last->read_end);
 
@@ -3514,19 +3788,19 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 
         } //else { printf("\n"); }
 	linked_list_iterator_next(&itr);
-	linked_list_item_free(list_item_cal, short_cal_free);
+	//linked_list_item_free(list_item_cal, short_cal_free);
 	list_item_cal = linked_list_iterator_list_item_curr(&itr);
       }
-      free(cals_list[i][j]);
+      //free(cals_list[i][j]);
     }
   }
 
-  /*for (unsigned int i = 0; i < nstrands; i++) {
+  for (unsigned int i = 0; i < nstrands; i++) {
     for (unsigned int j = 0; j < nchromosomes; j++) {
       linked_list_free(cals_list[i][j], short_cal_free);
     }
     free(cals_list[i]);
-    }*/
+  }
   
 
   //for (unsigned int i = 0; i < nstrands; i++) {
