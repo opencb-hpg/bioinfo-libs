@@ -298,6 +298,13 @@ size_t bwt_map_inexact_read(fastq_read_t *read,
 // seed functions
 //-----------------------------------------------------------------------------
 
+size_t bwt_map_seeds_IA(int padding_left,
+			int padding_right,
+			char *seq, 
+			size_t seed_size, size_t min_seed_size,
+			bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+			array_list_t *mapping_list, unsigned char step_id);
+
 size_t bwt_map_exact_seeds_seq(int padding_left,
 			       int padding_right,
 			       char *seq, 
@@ -323,6 +330,7 @@ size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_si
 
 
 size_t bwt_map_inexact_seeds_by_region(int start_position, int end_position, 
+				       int strand, 
 				       int chromosome_target, int start_target,
 				       int end_target,
 				       char *seq, size_t seed_size,
