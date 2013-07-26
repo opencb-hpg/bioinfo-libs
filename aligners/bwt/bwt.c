@@ -1773,7 +1773,8 @@ void *__bwt_generate_anchor_list(size_t k_start, size_t l_start, int len_calc, b
 	 idx = binsearch(index->karyotype.offset, index->karyotype.size, key);
 	 if(key + len_calc <= index->karyotype.offset[idx]) {
 	   start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);	
-	   bwt_anchor = bwt_anchor_new(!type, idx - 1, start_mapping, start_mapping + len_calc, type_anchor);
+	   bwt_anchor = bwt_anchor_new(!type, idx - 1, start_mapping + 1, start_mapping + len_calc, type_anchor);
+	   LOG_DEBUG_F("anchor: %lu - %lu\n", bwt_anchor->start, bwt_anchor->end);
 	   array_list_insert(bwt_anchor, anchor_list);
 	   //printf("\tTest k-l: %i:%lu\n", idx, start_mapping);
 	 }
@@ -3211,9 +3212,10 @@ size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position,
 
   // first 'pasada'
   offset = 0;
+  char aux_seq[1000];
   for (size_t i = 0; i < num_seeds; i++) {
-    //memcpy(aux_seq, seq + start_position + offset, seed_size);aux_seq[seed_size] = '\0';
-    //printf("\t Seed [%i-%i]: %s\n", start_position + offset, start_position + offset + seed_size - 1, aux_seq);
+    memcpy(aux_seq, seq + start_position + offset, seed_size); aux_seq[seed_size] = '\0';
+    LOG_DEBUG_F("\t Seed [%i-%i]: %s\n", start_position + offset, start_position + offset + seed_size - 1, aux_seq);
     bwt_map_exact_seed(code_seq, strlen(seq), start_position + offset, start_position + offset + seed_size - 1,
 		       bwt_optarg, index, mapping_list, seed_id++);
     offset += seed_size;
