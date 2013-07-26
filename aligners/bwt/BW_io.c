@@ -605,6 +605,8 @@ void load_reference(byte_vector *X, int duplicate, exome *ex, const char *path) 
   total_length=0;
   partial_length=0;
 
+  printf("START FUNC\n");
+
   while ( fgets(X->vector + total_length, MAXLINE, ref_file) ) {
 
     if ( (X->vector + total_length)[0] == '>') {
@@ -666,6 +668,8 @@ void load_reference(byte_vector *X, int duplicate, exome *ex, const char *path) 
   fclose(ref_file);
 
   if (duplicate) duplicate_reference(X);
+  
+  printf("FIN FUNC\n");
 
 }
 

@@ -300,8 +300,8 @@ void BWBranchPartialResultsForward(char *W, vector *C, vector *C1, comp_matrix *
 
 }
 
-void BWExactSearchVectorBackward(char *W, int start, int end, size_t k, size_t l, size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O) {
-
+void BWExactSearchVectorBackward(char *W, int start, int end, size_t k, size_t l, size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O, size_t *last_k, size_t *last_l, int *nt) {
+  *nt = 0;
   if (k > l)       return;
   if (start > end) return;
 
@@ -314,19 +314,21 @@ void BWExactSearchVectorBackward(char *W, int start, int end, size_t k, size_t l
 
   k2 = k;
   l2 = l;
-
+  //printf("Start with BWExactSearchVectorBackward k2=%lu, l2=%lu\n", k2, l2);
   for(i=end, j=last; i>=start; i--, j--) {
-
+    //printf("Nt %i:\n", i);
     BWiteration(k2, l2, k2, l2, (size_t)W[i], C, C1, O);
 
     vec_k[j] = k2;
     vec_l[j] = l2;
-
+    //printf("\tk2=%lu, l2=%lu, nt=%i\n", k2, l2, nt);
     if (k2 > l2) {
       i--; j--;
       break;
-    }
-
+    } 
+    *last_k = k2;
+    *last_l = l2;
+    (*nt)++;
   }
 
   for(;i>=start; i--, j--) {
@@ -336,7 +338,107 @@ void BWExactSearchVectorBackward(char *W, int start, int end, size_t k, size_t l
 
 }
 
-void BWExactSearchVectorForward(char *W, int start, int end, size_t k, size_t l, size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O) {
+void BWExactSearchVectorBackwardHector(char *W, int start, int end, size_t k, size_t l, 
+				       size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O) {
+  int nt = 0;
+  if (k > l)       return;
+  if (start > end) return;
+
+  BWiterationVariables();
+
+  size_t k2, l2, k2_prev, l2_prev, k2_new, l2_new, diff, max_diff;
+  int last;
+  int i, j;
+  int MAX_NUM_MISMATCHES = 5;
+  int base_mismatch[5];
+  int pos_mismatch[5];
+  int num_mismatches = 0;
+  char bases[4] = "ACGT";
+  char bases_cod[4];
+  int change_status = 0;
+  size_t code_base;
+  int error = 0;
+
+  replaceBases(bases, bases_cod, 4);
+
+  last = end - start;
+
+  k2 = k;
+  l2 = l;
+  
+  i = end;
+  j = last;
+
+  while (i >= start) {
+    nt++;
+    //printf("Nt %i:\n", i);
+    code_base = (size_t)W[i];  
+    k2_prev = k2;
+    l2_prev = l2;
+    BWiteration(k2, l2, k2, l2, code_base, C, C1, O);
+
+    //vec_k[j] = k2;
+    //vec_l[j] = l2;
+    //printf("\tk2=%lu, l2=%lu, nt=%i\n", k2, l2, nt);
+    if (k2 > l2) {
+      if (num_mismatches > MAX_NUM_MISMATCHES) {
+	//printf("Max mismatches found!\n");
+	break;
+      }
+      //Go to retry new base
+      i++; j++;
+      size_t new_code_base;
+      diff = 0;
+      for (int p = 0; p < 4; p++) {
+	new_code_base = (size_t)bases_cod[p];
+	if (code_base != new_code_base) {
+	  //printf("\tSeach New Base %c: ", bases[p]);
+	  k2 = k2_prev;
+	  l2 = l2_prev;
+	  BWiteration(k2, l2, k2, l2, new_code_base, C, C1, O);
+	  if (k2 <= l2) {
+	    //printf("Found Tot Errors k=%lu - l=%lu\n", k2, l2);
+	    pos_mismatch[num_mismatches++] = nt;
+	    //break;
+	  } //else { printf("No! :(\n"); }
+	}
+      }
+      break;
+    }
+
+    i--; j--;
+
+  }
+
+  //printf("Start with BWExactSearchVectorBackward k2=%lu, l2=%lu\n", k2, l2);
+  /*for(i=end, j=last; i>=start; i--, j--) {
+    nt++;
+    printf("Nt %i:\n", i);
+    BWiteration(k2, l2, k2, l2, (size_t)W[i], C, C1, O);
+
+    vec_k[j] = k2;
+    vec_l[j] = l2;
+    printf("\tk2=%lu, l2=%lu, nt=%i\n", k2, l2, nt);
+    if (k2 > l2) {
+      i--; j--;
+      printf("\tBreak loop. Good Bye!\n");
+      //break;      
+    } 
+  }
+
+  for(;i>=start; i--, j--) {
+    vec_k[j] = k2;
+    vec_l[j] = l2;
+    }
+  */
+
+  exit(-1);
+}
+
+
+void BWExactSearchVectorForward(char *W, int start, int end, size_t k, size_t l, 
+				size_t *vec_k, size_t *vec_l, vector *C, vector *C1, comp_matrix *O,
+				size_t *last_k, size_t *last_l, int *nt) {
 
   if (k > l) return;
   if (start > end) return;
@@ -350,6 +452,7 @@ void BWExactSearchVectorForward(char *W, int start, int end, size_t k, size_t l,
 
   k2 = k;
   l2 = l;
+  *nt = 0;
 
   for(i=start, j=0; i<=end; i++, j++) {
 
@@ -362,7 +465,9 @@ void BWExactSearchVectorForward(char *W, int start, int end, size_t k, size_t l,
       i++; j++;
       break;
     }
-
+    *last_k = k2;
+    *last_l = l2;
+    (*nt)++;
   }
 
   for(; i<=end; i++, j++) {
@@ -401,10 +506,9 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
 
   size_t _k, _l, _ki, _li, _k_aux, _l_aux, _ki_aux, _li_aux;
   size_t results, results_last;
-
   unsigned int i, j, half, n;
-
   result r;
+  int found_result = 0;
 
   n = end - start;
   half = n / 2;
@@ -413,8 +517,11 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
   bound_result(&r, start, end);
 
   if (vec_k[0] <= vec_l[0]) {
+    //printf("B1. If...\n");
     change_result(&r, vec_k[0], vec_l[0], -1);
     add_result(&r, r_list);
+    found_result = 1;
+    //printf("B1. If End\n");
   }
 
   add_mismatch(&r, MATCH, XXX, start);
@@ -429,6 +536,7 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
   //printf("B -> %d: %d -> %d, %u, %u\n", 0, results, results_last, _k, _l);
 
   if (results != results_last) {
+    //printf("B2. If...\n");
 
     //printf("*B -> %d: %d -> %d, %u, %u\n", 0, results, results_last, _k, _l);
 
@@ -438,9 +546,9 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
     change_result(&r, _k, _l, -1);
     modify_last_mismatch_3(&r, DELETION, XXX, start);
     add_result(&r, r_list);
+    found_result = 1;
 
     for (size_t b=0;b<nA;b++) {
-
       BWiteration(_k, _l, _k_aux, _l_aux, b, C, C1, O);
       //printf("W -> %d, %d - %d\n", b, _k_aux, _l_aux);
 
@@ -454,6 +562,7 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
 	change_result(&r, _k_aux, _l_aux, -1);
 	modify_last_mismatch_2(&r, MISMATCH, b);
 	add_result(&r, r_list);
+	found_result = 1;
       }
 
       //Insertion
@@ -463,30 +572,31 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
 	change_result(&r, _k_aux, _l_aux, -1);
 	modify_last_mismatch_3(&r, 3, INSERTION, b);
 	add_result(&r, r_list);
+	found_result = 1;
       }
 
     }
-
+    //printf("B2. If End\n");
   }
 
+  //printf("B1. For...\n");
   for (i=start+2, j=2; j<=half; i++, j++) {
-
     results_last = results;
     _k = vec_k[j];
     _l = vec_l[j];
     results = _l  - _k;
 
-    //printf("B -> %d: %d -> %d, %u, %u\n", j-1, results, results_last, _k, _l);
+    //printf("Loop B -> %d: %d -> %d, %u, %u\n", j-1, results, results_last, _k, _l);
 
     if (results == results_last) continue;
 
-    //printf("*B -> %d: %d -> %d, %u, %u\n", j-1, results, results_last, _k, _l);
+    //printf("Loop *B -> %d: %d -> %d, %u, %u\n", j-1, results, results_last, _k, _l);
 
     //Deletion
     change_result(&r, _k, _l, i-2);
     modify_last_mismatch_3(&r, DELETION, XXX, i-1);
     BWExactSearchBackward(W, C, C1, O, &r);
-    if (r.k<=r.l) add_result(&r, r_list);
+    if (r.k<=r.l) { add_result(&r, r_list);found_result = 1; }
 
     for (size_t b=0;b<nA;b++) {
 
@@ -498,20 +608,21 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
       change_result(&r, _k_aux, _l_aux, i-1);
       modify_last_mismatch_2(&r, INSERTION, b);
       BWExactSearchBackward(W, C, C1, O, &r);
-      if (r.k<=r.l) add_result(&r, r_list);
+      if (r.k<=r.l) { add_result(&r, r_list);found_result = 1; }
 
       //Mismatch
       if (b!=(size_t)W[i-1]) {
+	//printf("\t--->Report Mismatch!! \n");
 	change_result(&r, _k_aux, _l_aux, i-2);
 	modify_last_mismatch_1(&r, MISMATCH);
 	BWExactSearchBackward(W, C, C1, O, &r);
-	if (r.k<=r.l) add_result(&r, r_list);
+	if (r.k<=r.l) { add_result(&r, r_list);found_result = 1; }
       }
 
     }
 
   }
-
+  //printf("B1. For End\n");
   //printf("\n");
 
   //TODO: Gestionar bien los errores de la busqueda al revés con Si y restas (precalcular Si con |X| - pos)
@@ -526,9 +637,8 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
   results = _li - _ki;
 
   //printf("F-> %d: %d -> %d, %u, %u\n", n, results, results_last, _ki, _li);
-
   if (results != results_last) {
-
+    //printf("F1. If...\n");
     //printf("*F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
 
     //Deletion
@@ -546,6 +656,7 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
 
       //Mismatch
       if (b!=b_w) {
+	//printf("\tF.--->Report Mismatch!! \n");
 	change_result(&r, _ki_aux, _li_aux, -1);
 	modify_last_mismatch_2(&r, MISMATCH, b);
 	add_result(&r, r_list);
@@ -563,9 +674,10 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
       }
 
     }
-
+    //printf("F1. If End\n");
   }
 
+  //printf("F1. For...\n");
   for(i=end-2,j=n-2; j>=half; i--, j--) {
 
     results_last = results;
@@ -573,11 +685,11 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
     _li  = vec_li[j];
     results = _li - _ki;
 
-    //printf("F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
+    //printf("Loop F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
 
     if (results == results_last) continue;
 
-    //printf("*F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
+    //printf("Loop *F -> %d: %d -> %d, %u - %u\n", i+1, results, results_last, _ki, _li);
 
     //TODO: Anadir contador para podar cuando se que ya he encontrado las cadenas que permite la variabilidad en este simbolo.
 
@@ -585,7 +697,8 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
     change_result(&r, _ki, _li, i+2);
     modify_last_mismatch_3(&r, DELETION, XXX, i+1);
     BWExactSearchForward(W, C, C1, Oi, &r);
-    if (r.k<=r.l) add_result(&r, r_list);
+
+    if (r.k<=r.l) { add_result(&r, r_list); }
 
     for (size_t b=0;b<nA;b++) {
 
@@ -599,20 +712,25 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
       change_result(&r, _ki_aux, _li_aux, i+1);
       modify_last_mismatch_2(&r, INSERTION, b);
       BWExactSearchForward(W, C, C1, Oi, &r);
-      if (r.k<=r.l) add_result(&r, r_list);
+      if (r.k<=r.l)  { 
+	add_result(&r, r_list); 
+      }
 
       //Mismatch
       if (b!= (size_t) W[i+1]) {
+	//printf("\t--->Report Mismatch!! \n");
 	change_result(&r, _ki_aux, _li_aux, i+2);
 	modify_last_mismatch_1(&r, MISMATCH);
 	BWExactSearchForward(W, C, C1, Oi, &r);
-	if (r.k<=r.l) add_result(&r, r_list);
+	if (r.k<=r.l) {
+	  add_result(&r, r_list);
+	}
       }
 
     }
-
   }
 
+  //printf("F1. For End\n");
   //printf("\n");
 
 }
