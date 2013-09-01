@@ -71,6 +71,8 @@ typedef struct seed_region {
   size_t genome_start;
   size_t genome_end;
   int id;
+  int fusion_left;
+  int fusion_right;
   void *info;
 } seed_region_t;
 
@@ -90,6 +92,8 @@ typedef struct cal {
   int read_area;
   int l_flank;
   int r_flank;
+  int fill_gaps;
+  int num_targets;
   linked_list_t *sr_list;
   linked_list_t *sr_duplicate_list;
   array_list_t *candidates_seeds_start;
@@ -106,6 +110,8 @@ cal_t *cal_new(const size_t chromosome_id,
                const linked_list_t *sr_duplicate_list);
 
 void cal_free(cal_t *cal);
+
+void cal_print(cal_t *cal);
 
 //-----------------------------------------------------------------------------
 
@@ -339,9 +345,24 @@ size_t bwt_map_inexact_seeds_by_region(int start_position, int end_position,
 				       bwt_index_t *index, 
 				       array_list_t *mapping_list);
 
+size_t bwt_map_exact_seeds_by_region(int start_position, int end_position, 
+				     char *seq, int seed_size, int min_seed_size,
+				     bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+				     array_list_t *mapping_list);
 //-----------------------------------------------------------------------------
 // cal functions
 //-----------------------------------------------------------------------------
+
+size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg, 
+			 bwt_index_t *index, array_list_t *cal_list);
+
+
+size_t bwt_generate_cals_between_coords(int strand_target, int chromosome_target,
+					size_t start_target, size_t end_target, 
+					int start_position, int end_posistion, 
+					char *seq, int seed_size, int min_seed_size,
+					bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+					array_list_t *init_list, array_list_t *cal_list);
 
 size_t bwt_find_cals_from_seq(char *seq, 
 			      bwt_optarg_t *bwt_optarg, 
