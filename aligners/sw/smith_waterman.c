@@ -85,6 +85,7 @@ sw_optarg_t* sw_optarg_new(float gap_open, float gap_extend, char *subst_matrix_
 
     optarg_p->gap_open = gap_open;
     optarg_p->gap_extend = gap_extend;
+    optarg_p->subst_matrix_name = strdup(subst_matrix_name);
     
     init_subst_score_matrix(subst_matrix_name, optarg_p->subst_matrix);
 
@@ -94,7 +95,8 @@ sw_optarg_t* sw_optarg_new(float gap_open, float gap_extend, char *subst_matrix_
 //------------------------------------------------------------------------------------
 
 void sw_optarg_free(sw_optarg_t* optarg_p) {
-    free(optarg_p);
+  free (optarg_p->subst_matrix_name);
+  free(optarg_p);
 }
 
 //------------------------------------------------------------------------------------
