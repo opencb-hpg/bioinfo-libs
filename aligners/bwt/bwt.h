@@ -169,7 +169,7 @@ short_cal_t *short_cal_new(const size_t start,
 			   const size_t seq_start,
 			   const size_t seq_end,
 			   const size_t seq_len,
-			   const size_t max_seeds,
+			   const int max_seeds,
 			   const int id);
 
 void short_cal_free(short_cal_t *short_cal_p);
@@ -408,7 +408,7 @@ size_t bwt_find_cals_from_batch(fastq_batch_t *batch,
 
 size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 					 cal_optarg_t *cal_optarg,
-					 size_t *min_seeds, size_t *max_seeds,
+					 int *min_seeds, int *max_seeds,
 					 size_t nchromosomes,
 					 array_list_t *cal_list,
 					 size_t read_length);
@@ -444,7 +444,7 @@ size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 
 size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
                                              cal_optarg_t *cal_optarg,
-                                             size_t *min_seeds, size_t *max_seeds,
+                                             size_t *min_seeds, int *max_seeds,
                                              size_t nchromosomes,
                                              array_list_t *cal_list,
                                              size_t read_length);

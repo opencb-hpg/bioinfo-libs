@@ -102,8 +102,14 @@ void seed_region_select_linked_list(linked_list_t* sr_list, linked_list_t* sr_du
 				    int seed_id, unsigned char *seeds_ids_array);
 
 //------------------------------------------------------------------------------
+
+void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size_t max_cal_distance, int max_seeds);
+
+//------------------------------------------------------------------------------
 // Paratemers for the candidate alignment localizations (CALs)
 //------------------------------------------------------------------------------
+
+
 
 cal_optarg_t *cal_optarg_new(const size_t min_cal_size, 
 			     const size_t max_cal_distance, 
@@ -240,7 +246,7 @@ short_cal_t *short_cal_new(const size_t start,
 			   const size_t seq_start,
 			   const size_t seq_end,
 			   const size_t seq_len,
-			   const size_t max_seeds,
+			   const int max_seeds,
 			   const int id) {
 
   short_cal_t *short_cal = (short_cal_t *)malloc(sizeof(short_cal_t));  
@@ -252,7 +258,7 @@ short_cal_t *short_cal_new(const size_t start,
 
   short_cal->seeds_ids_array = (unsigned char *)calloc(max_seeds, sizeof(unsigned char));
 
-  if (short_cal->seeds_ids_array == NULL) LOG_FATAL("NO MORE MEMORY...AGGGGG\n");
+  if (short_cal->seeds_ids_array == NULL) LOG_FATAL("NO MORE MEMORY\n");
   if (id >= max_seeds) LOG_FATAL_F("STORAGE SEED ID OVERFLOW: %i > %i\n", id, max_seeds);
 
   short_cal->seeds_ids_array[id] = 1;
@@ -3235,7 +3241,7 @@ size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right,
   
 }
 
-void insert_seeds_and_merge(array_list_t *mapping_list, linked_list_t ***cals_list,  int max_cal_distance) {  
+void insert_seeds_and_merge(array_list_t *mapping_list, linked_list_t ***cals_list,  size_t max_cal_distance) {  
   for (int m = array_list_size(mapping_list) - 1; m >= 0; m--) {
     region_t *region = array_list_remove_at(m, mapping_list);
     int  chromosome_id = region->chromosome_id;
@@ -3990,7 +3996,7 @@ void append_seed_region_linked_list(linked_list_t* sr_list,
 
 //-----------------------------------------------------------------------------
 
-void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size_t max_cal_distance, size_t max_seeds) {  
+void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size_t max_cal_distance, int max_seeds) {  
   unsigned char actualization = 0;
   short_cal_t *item, *item_aux, *new_item_p, *item_free;
   
@@ -4153,7 +4159,7 @@ void my_cp_list_append_linked_list(linked_list_t* list_p, region_t *region, size
 
 size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
 					 cal_optarg_t *cal_optarg,
-					 size_t *min_seeds, size_t *max_seeds,
+					 int *min_seeds, int *max_seeds,
 					 size_t nchromosomes,
 					 array_list_t *cal_list,
 					 size_t read_length) {
@@ -4926,7 +4932,7 @@ size_t bwt_find_cals_from_batch(fastq_batch_t *batch,
 //-----------------------------------------------------------------------------
 size_t bwt_generate_cal_list_linkedlist(array_list_t *mapping_list,
 					cal_optarg_t *cal_optarg,
-					size_t *min_seeds, size_t *max_seeds,
+					int *min_seeds, int *max_seeds,
 					size_t nchromosomes,
 					array_list_t *cal_list) {
   /*
