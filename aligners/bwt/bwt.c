@@ -251,6 +251,10 @@ short_cal_t *short_cal_new(const size_t start,
   short_cal->num_seeds = 1;
 
   short_cal->seeds_ids_array = (unsigned char *)calloc(max_seeds, sizeof(unsigned char));
+
+  if (short_cal->seeds_ids_array == NULL) LOG_FATAL("NO MORE MEMORY...AGGGGG\n");
+  if (id >= max_seeds) LOG_FATAL_F("STORAGE SEED ID OVERFLOW: %i > %i\n", id, max_seeds);
+
   short_cal->seeds_ids_array[id] = 1;
 
   short_cal->sr_list = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
@@ -3238,7 +3242,7 @@ void insert_seeds_and_merge(array_list_t *mapping_list, linked_list_t ***cals_li
     int strand = region->strand;    
     //printf("Insert Region (%i)[%i:%lu|%i-%i|%lu]\n", region->strand, region->chromosome_id, 
     // region->start, region->seq_start, region->seq_end, region->end);
-    my_cp_list_append_linked_list(cals_list[strand][chromosome_id], region, max_cal_distance, 1000);
+    my_cp_list_append_linked_list(cals_list[strand][chromosome_id], region, (size_t) max_cal_distance, 1000);
 
     region_bwt_free(region);
   }
