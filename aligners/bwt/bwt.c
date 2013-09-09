@@ -1491,7 +1491,7 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
 		 index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]),
 		 seq, bwt_error_type(r->err_kind[0]), r->position[0], r->base[0]);
 	  */
-	  start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
+	  start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]) + 1;
 	  // save all into one alignment structure and insert to the list
 	  region = region_bwt_new(idx, !type, start_mapping, start_mapping + end, aux_seq_start, aux_seq_end, seq_len, seed_id);
 	  //printf("Report Region in position [%i:%lu-%lu]\n", idx, start_mapping, start_mapping + end);
@@ -2141,7 +2141,7 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 			 alignment = alignment_new();
 			 alignment_init_single_end(NULL, strdup(seq_dup), strdup(quality_clipping), !type, 
 						   idx - 1, //index->karyotype.chromosome + (idx-1) * IDMAX,
-						   start_mapping, //index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]), 
+						   start_mapping + 1, //index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]), 
 						   strdup(cigar), num_cigar_ops, 254, 1, (num_mappings > 0), 0, NULL, 0, alignment);
 
 			 array_list_insert((void*) alignment, tmp_mapping_list);
