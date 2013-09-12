@@ -3469,6 +3469,9 @@ size_t bwt_map_exact_seeds_by_region(int start_position, int end_position,
     bwt_map_exact_seed(code_seq, strlen(seq), end_position - seed_size, end_position - 1,
 		       bwt_optarg, index, mapping_list, seed_id++);
   }
+
+  free(code_seq);
+
   return array_list_size(mapping_list);
 }
 
