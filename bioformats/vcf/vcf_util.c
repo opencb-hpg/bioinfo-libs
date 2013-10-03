@@ -127,3 +127,31 @@ enum alleles_code get_alleles(char* sample, int genotype_position, int* allele1,
     
     return ret_code;
 }
+
+void set_field_value_in_sample(char **sample, int position, char* value){
+    assert(sample);
+    assert(value);
+    assert(position >= 0);
+
+    int field_pos = 0;
+    int num_splits;
+
+    char **splits = split(*sample, ":", &num_splits);
+    *sample = realloc(*sample, strlen(*sample) + strlen(value) + 1);
+    strcpy(*sample, "");
+    for(int i = 0; i < num_splits; i++)
+    {
+        if(i == position){
+            strcat(*sample, value);
+        }else{
+            strcat(*sample, splits[i]);
+        }
+        if(i < (num_splits - 1))
+            strcat(*sample, ":");
+    }
+    for(int i = 0; i < num_splits; i++)
+    {
+        free(splits[i]);
+    }
+}
+
