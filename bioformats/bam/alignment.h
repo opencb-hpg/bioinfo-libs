@@ -291,6 +291,8 @@ void convert_to_quality_uint8_t(uint8_t* data, char* quality_p, int quality_leng
  *      	Functions to manage CIGAR                		*
  * *********************************************************************/
 
+char select_op(unsigned char status);
+
 /**
  */
 char* generate_cigar_str(char *str_seq_p, char *str_ref_p, unsigned int start_seq, 

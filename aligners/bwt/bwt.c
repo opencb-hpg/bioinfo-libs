@@ -1208,11 +1208,11 @@ size_t bwt_map_exact_seed(char *seq, size_t seq_len,
 
     if (actual_mappings > bwt_optarg->filter_seed_mappings) {
       //discard_seed = 1;
+      //printf("Limit exceded LIMIT = %i, MAP = %i\n", bwt_optarg->filter_seed_mappings, actual_mappings);
       continue;
       k_aux = result.k;
       l_aux = result.k + 10;      
       //limit_exceeded = 1;
-      printf("Limit exceded LIMIT = %i, MAP = %i\n", bwt_optarg->filter_seed_mappings, actual_mappings);
       break;
     } else {
 	//printf("\tk=%d - l=%d\n", r->k, r->l);      
@@ -1464,6 +1464,7 @@ size_t bwt_map_inexact_seed(char *seq, size_t seq_len,
 	k_start = r->k;
 	l_start = r->l;
       }else  {
+	//printf("LIMIT EXCEEDED %lu\n", (r->l - r->k + 1));
 	k_start = r->k;
 	l_start = r->k + 1;
       }
@@ -2929,7 +2930,7 @@ size_t bwt_map_inexact_seeds_by_region(int start_position, int end_position,
 				       array_list_t *mapping_list) {
   //array_list_t *aux_list = array_list_new(100, 1.25f, COLLECTION_MODE_ASYNCHRONIZED);
   //array_list_t *regions_list = array_list_new(100, 1.25f, COLLECTION_MODE_ASYNCHRONIZED);
-
+  if (seed_size <= 10) { seed_size = 16; }
   int len_region = end_position - start_position;
   size_t len = strlen(seq);
   size_t offset, num_seeds = len_region / seed_size;
@@ -3193,7 +3194,8 @@ size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right,
   int seed_id = 0;
 
   size_t offset, num_seeds;
-  
+  if (seed_size <= 10) { seed_size = 16; }
+
   //printf(" len=%i, seed_size=%i, num_seeds=%i\n", len, seed_size, num_seeds);
   char *code_seq = (char *) calloc(len, sizeof(char));
 
@@ -3273,12 +3275,14 @@ size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg,
 
   size_t offset, num_seeds;
   
-  //printf(" len=%i, seed_size=%i, num_seeds=%i\n", len, seed_size, num_seeds);
+  //printf(" len=%i, seed_size=%i, num_seeds=%i, seq=%s\n", len, seed_size, num_seeds, seq);
   char *code_seq = (char *) calloc(len, sizeof(char));
 
   replaceBases(seq, code_seq, len);
 
   //Second first seed
+  if (seed_size <= 10) { seed_size = 16; }
+
   int padding_left = seed_size / 2;
   int padding_right = padding_left;
 
@@ -3441,6 +3445,8 @@ size_t bwt_map_exact_seeds_by_region(int start_position, int end_position,
   
   int len = end_position - start_position;
   int seed_id = 1;
+  if (seed_size <= 10) { seed_size = 16; }
+
   int offset, num_seeds = len / seed_size;
   char *code_seq = (char *) calloc(strlen(seq), sizeof(char));
   int extra_seed_offset = seed_size / 2;
@@ -3496,7 +3502,7 @@ size_t bwt_generate_cals_between_coords(int strand_target, int chromosome_target
   }
   
   //TODO: ¿¿We need filter mappings?? ¿¿Call bwt_map_exact_seed_with_filter??
-  int len = end_position - start_position;
+  if (seed_size <= 10) { seed_size = 16; }  int len = end_position - start_position;
   int seed_id = 1;
   int offset, num_seeds = len / seed_size;
   char *code_seq = (char *) calloc(strlen(seq), sizeof(char));
@@ -3690,7 +3696,7 @@ size_t bwt_map_exact_seeds_seq_by_num(char *seq, size_t num_seeds,
 				      array_list_t *mapping_list) {
   size_t seq_len = strlen(seq);
   size_t num_mappings = 0;
-
+  if (seed_size <= 10) { seed_size = 16; }
   char *code_seq = (char *) calloc(seq_len, sizeof(char));
 
   replaceBases(seq, code_seq, seq_len);
@@ -4173,14 +4179,12 @@ size_t bwt_generate_cal_list_linked_list(array_list_t *mapping_list,
   size_t chromosome_id;
   short int strand;
   size_t start, end;
-  int seed_size = 16; //Change parameter
+  int seed_size = cal_optarg->seed_size; //Change parameter
   int min_intron_size = 500000; //Change parameter
-
   linked_list_iterator_t itr, itr2;
-
   const unsigned char nstrands = 2;
-  
   linked_list_t ***cals_list = (linked_list_t ***)malloc(sizeof(linked_list_t **)*nstrands);
+  nchromosomes += 1;
 
   for (unsigned int i = 0; i < nstrands; i++) {
     cals_list[i] = (linked_list_t **)malloc(sizeof(linked_list_t *)*nchromosomes);
