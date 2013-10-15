@@ -492,7 +492,7 @@ inline unsigned int getScompValue(size_t m, comp_vector *Scomp, vector *C, comp_
     } else {
 
 #if defined VECTOR_O_32BIT_COMPRESSION || VECTOR_O_64BIT_COMPRESSION
-      i = C->vector[(int)b_aux] + getOcompValue((int)b_aux, i+1, O);
+      i = C->vector[(int)b_aux] +  getOcompValue((int)b_aux, i+1, O);
 #else
       i = C->vector[(int)b_aux] + O->desp[(int)b_aux][i+1/*0 is -1*/];
 #endif

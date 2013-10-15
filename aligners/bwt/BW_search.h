@@ -135,7 +135,6 @@ inline void BWExactSearchForward(char *W, vector *C, vector *C1, comp_matrix *Oi
   //printf("F1º -> %lu - %lu\n", k2, l2);
 
   for(i=r->pos; i<=r->end; i++) {
-
     BWiteration(k2, l2, k2, l2, W[i], C, C1, Oi);
     //printf("F-> %d -> %lu - %lu\n", i, k2, l2);
     if (k2 > l2) break;
