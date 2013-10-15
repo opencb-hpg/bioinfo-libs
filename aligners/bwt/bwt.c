@@ -909,7 +909,7 @@ size_t bwt_map_exact_seq(char *seq,
 	alignment_init_single_end(NULL, strdup(seq_strand), NULL, !type, 
 				  idx - 1,				      
 				  start_mapping, 
-				  cigar_p, 1, 254, 1, (num_mappings > 0), 0, optional_fields, 0, alignment);
+				  cigar_p, 1, 254, 1, (num_mappings > 0), 0, optional_fields, alignment);
 	  
 	if(!array_list_insert((void*) alignment, mapping_list)){
 	  printf("Error to insert item into array list\n");
@@ -1877,7 +1877,7 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 				    0,
 				    -1,
 				    -1,
-				    strdup(aux), 1, 0, 0, 0, 0, NULL, 0, alignment);
+				    strdup(aux), 1, 0, 0, 0, 0, NULL, alignment);
 	  array_list_insert((void*) alignment, mapping_list);
 	  return 1;
      }
@@ -2150,7 +2150,7 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 			 alignment_init_single_end(NULL, strdup(seq_dup), strdup(quality_clipping), !type, 
 						   idx - 1, //index->karyotype.chromosome + (idx-1) * IDMAX,
 						   start_mapping + 1, //index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]), 
-						   strdup(cigar), num_cigar_ops, 254, 1, (num_mappings > 0), 0, NULL, 0, alignment);
+						   strdup(cigar), num_cigar_ops, 254, 1, (num_mappings > 0), 0, NULL, alignment);
 
 			 array_list_insert((void*) alignment, tmp_mapping_list);
 		    }
