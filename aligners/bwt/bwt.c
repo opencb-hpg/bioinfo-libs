@@ -605,6 +605,10 @@ bwt_index_t *bwt_index_new(const char *dirname) {
 
   index->dirname = strdup(dirname);
 
+  // be careful: added by JTPP to support 3-nt genomes (useful for bs)
+  index->nucleotides = readNucleotide(dirname, "Nucleotide");
+  bwt_init_replace_table(index->nucleotides, index->table, index->rev_table);
+
   readUIntVector(&index->h_C, dirname, "C");
   readUIntVector(&index->h_C1, dirname, "C1");
   readCompMatrix(&index->h_O, dirname, "O");
@@ -637,6 +641,8 @@ void bwt_index_free(bwt_index_t *index) {
   if (index == NULL) return;
 
   free(index->dirname);
+  // be careful: added by JTPP to support 3-nt genomes (useful for bs)
+  free(index->nucleotides);
 
   free(index->h_C.vector);
   free(index->h_C1.vector);
@@ -670,7 +676,7 @@ void bwt_generate_index_files(char *ref_file, char *output_dir,
   //ex.end = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
   //ex.offset = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
   
-  initReplaceTable();
+  initReplaceTable_bs(NULL);
 
   // Calculating BWT
   calculateBWT(&B, &S, &X, 0, &ex, ref_file);
@@ -851,7 +857,9 @@ size_t bwt_map_exact_seq(char *seq,
   unsigned int start_mapping;
   //char *chromosome = (char *)malloc(sizeof(char)*10);
   seq_strand = strdup(seq);
-  replaceBases(seq, code_seq, len);
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, len);
+  bwt_encode_Bases(code_seq, seq, len, &index->table);
   struct timeval t_start, t_end;
   char *optional_fields /*= (char *)malloc(sizeof(char)*256)*/;
   //printf("---> EXACT Search Read (%d): %s\n", len, seq);
@@ -1892,7 +1900,9 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 
      char *code_seq = (char *) malloc(len * sizeof(char));
 
-     replaceBases(seq, code_seq, len);
+     // be careful, now we use the table from the index
+     //replaceBases(seq, code_seq, len);
+     bwt_encode_Bases(code_seq, seq, len, &index->table);
 
      // calculate vectors k and l
      size_t *k0 = (size_t *) malloc(len * sizeof(size_t));
@@ -2890,7 +2900,9 @@ size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_si
   int seq_id = 0;
   //char aux_seq[50];
 
-  replaceBases(seq, code_seq, len);
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, len);
+  bwt_encode_Bases(code_seq, seq, len, &index->table);
 
   // first 'pasada'
   offset = 0;
@@ -2940,7 +2952,10 @@ size_t bwt_map_inexact_seeds_by_region(int start_position, int end_position,
   char *code_seq = (char *) calloc(len + 1, sizeof(char));
   int seq_id = 1;
   char aux_seq[50];
-  replaceBases(seq, code_seq, len);
+
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, len);
+  bwt_encode_Bases(code_seq, seq, len, &index->table);
 
   int padding_regions = 0;
   int num_regions;
@@ -3161,7 +3176,10 @@ size_t bwt_map_seeds_IA(int padding_left,
   //printf(" len=%i, seed_size=%i, num_seeds=%i\n", len, seed_size, num_seeds);
   char *code_seq = (char *) calloc(len, sizeof(char));
   int num_regions_start, num_regions_end;
-  replaceBases(seq, code_seq, len);
+
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, len);
+  bwt_encode_Bases(code_seq, seq, len, &index->table);
 
   //First Exact seed Start read and End
   num_regions_start = bwt_map_exact_seed(code_seq, len, 0, 20 - 1,
@@ -3202,7 +3220,9 @@ size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right,
   //printf(" len=%i, seed_size=%i, num_seeds=%i\n", len, seed_size, num_seeds);
   char *code_seq = (char *) calloc(len, sizeof(char));
 
-  replaceBases(seq, code_seq, len);
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, len);
+  bwt_encode_Bases(code_seq, seq, len, &index->table);
 
   //Second first seed
   padding_left = seed_size / 2;
@@ -3281,7 +3301,9 @@ size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg,
   //printf(" len=%i, seed_size=%i, num_seeds=%i, seq=%s\n", len, seed_size, num_seeds, seq);
   char *code_seq = (char *) calloc(len, sizeof(char));
 
-  replaceBases(seq, code_seq, len);
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, len);
+  bwt_encode_Bases(code_seq, seq, len, &index->table);
 
   //Second first seed
   if (seed_size <= 10) { seed_size = 16; }
@@ -3455,7 +3477,9 @@ size_t bwt_map_exact_seeds_by_region(int start_position, int end_position,
   int extra_seed_offset = seed_size / 2;
   int extra_seed_size = 16;
 
-  replaceBases(seq, code_seq, strlen(seq));
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, strlen(seq));
+  bwt_encode_Bases(code_seq, seq, strlen(seq), &index->table);
   num_seeds = len / seed_size;
 
   offset = start_position;
@@ -3512,7 +3536,9 @@ size_t bwt_generate_cals_between_coords(int strand_target, int chromosome_target
   int extra_seed_offset = seed_size / 2;
   int extra_seed_size = 16;
 
-  replaceBases(seq, code_seq, strlen(seq));
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, strlen(seq));
+  bwt_encode_Bases(code_seq, seq, strlen(seq), &index->table);
   num_seeds = len / seed_size;
 
   insert_seeds_and_merge(init_list, cals_list,  strlen(seq));
@@ -3702,7 +3728,9 @@ size_t bwt_map_exact_seeds_seq_by_num(char *seq, size_t num_seeds,
   if (seed_size <= 10) { seed_size = 16; }
   char *code_seq = (char *) calloc(seq_len, sizeof(char));
 
-  replaceBases(seq, code_seq, seq_len);
+  // be careful, now we use the table from the index
+  //replaceBases(seq, code_seq, strlen(seq));
+  bwt_encode_Bases(code_seq, seq, seq_len, &index->table);
 
   num_mappings = seeding(code_seq, seq_len, num_seeds, seed_size, min_seed_size,
 			 bwt_optarg, index, mapping_list);

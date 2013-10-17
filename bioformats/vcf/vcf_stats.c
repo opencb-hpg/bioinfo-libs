@@ -50,7 +50,6 @@ variant_stats_t* variant_stats_new(char *chromosome, unsigned long position, cha
     stats->ref_allele = ref_allele;
     stats->alternates = NULL;
     stats->maf_allele = NULL;
-    stats->mgf_genotype = NULL;
     
     stats->num_alleles = 1;
     stats->alleles_count = NULL;
@@ -78,7 +77,6 @@ void variant_stats_free(variant_stats_t* stats) {
     
     if (stats->chromosome) { free(stats->chromosome); }
     if (stats->ref_allele) { free(stats->ref_allele); }
-    if (stats->mgf_genotype) { free(stats->mgf_genotype); }
     if (stats->alternates) {
         for (int i = 0; i < stats->num_alleles-1; i++) {
             free(stats->alternates[i]);
@@ -113,7 +111,7 @@ int get_variants_stats(vcf_record_t **variants, int num_variants, individual_t *
     int controls_dominant = 0;  // Number of controls that follow a dominant inheritance pattern
     int cases_recessive = 0;    // Number of cases that follow a recessive inheritance pattern
     int controls_recessive = 0; // Number of controls that follow a recessive inheritance pattern
-    float maf = INT_MAX, mgf = INT_MAX;
+    float maf = 1.0f, mgf = 1.0f;
     float cur_gt_freq;
     
     // Variant stats management
@@ -128,7 +126,7 @@ int get_variants_stats(vcf_record_t **variants, int num_variants, individual_t *
         // Reset counters
         total_alleles_count = total_genotypes_count = 0;
         cases_dominant = controls_dominant = cases_recessive = controls_recessive = 0;
-        maf = mgf = INT_MAX;
+        maf = mgf = 1.0f;
         
         // Create list of alternates
         copy_buf = strndup(record->alternate, record->alternate_len);
@@ -207,11 +205,11 @@ int get_variants_stats(vcf_record_t **variants, int num_variants, individual_t *
             }
             
             // Include statistics that depend on pedigree information
-            if (individuals && !alleles_code) {
+            if (individuals) {
                 // Check mendelian errors (pedigree data must be given)
-                if (sample_ids) {
+                if (sample_ids && !alleles_code) {
                     if (is_mendelian_error(individuals[j]->father, individuals[j]->mother, individuals[j], 
-                                           allele1, allele2, gt_position, record, sample_ids) > 0) {
+                                        allele1, allele2, gt_position, record, sample_ids) > 0) {
                         (stats->mendelian_errors)++;
                     }
                 }
@@ -237,10 +235,6 @@ int get_variants_stats(vcf_record_t **variants, int num_variants, individual_t *
         
         assert(cases_dominant >= cases_recessive);
         assert(controls_recessive >= controls_dominant);
-        assert(controls_dominant <= record->samples->size - stats->missing_genotypes);
-        assert(cases_dominant <= record->samples->size - stats->missing_genotypes);
-        assert(controls_recessive <= record->samples->size - stats->missing_genotypes);
-        assert(cases_recessive <= record->samples->size - stats->missing_genotypes);
         
         // Once all samples have been traverse, calculate % that follow inheritance model
         stats->controls_percent_dominant = (float) controls_dominant * 100 / (record->samples->size - stats->missing_genotypes);
@@ -250,7 +244,7 @@ int get_variants_stats(vcf_record_t **variants, int num_variants, individual_t *
         
         // Get allele and genotype frequencies, as well as MAF and MGF
         for (int j = 0; j < stats->num_alleles; j++) {
-            stats->alleles_freq[j] = (total_alleles_count > 0) ? (float) stats->alleles_count[j] / total_alleles_count : 0;
+            stats->alleles_freq[j] = (float) stats->alleles_count[j] / total_alleles_count;
             if (stats->alleles_freq[j] < maf) {
                 maf = stats->alleles_freq[j];
                 stats->maf_allele = (j == 0) ? stats->ref_allele : stats->alternates[j-1];
@@ -259,7 +253,8 @@ int get_variants_stats(vcf_record_t **variants, int num_variants, individual_t *
         stats->maf = maf;
         
         for (int j = 0; j < stats->num_alleles * stats->num_alleles; j++) {
-            stats->genotypes_freq[j] = (total_genotypes_count > 0) ? (float) stats->genotypes_count[j] / total_genotypes_count : 0;
+            printf("");
+            stats->genotypes_freq[j] = (float) stats->genotypes_count[j] / total_genotypes_count;
         }
         
         for (int j = 0; j < stats->num_alleles; j++) {
@@ -476,7 +471,7 @@ static int is_mendelian_error(individual_t *father, individual_t *mother, indivi
     char *father_sample = strdup(sample_data[father_pos]);
     char *mother_sample = strdup(sample_data[mother_pos]);
 
-    //LOG_DEBUG_F("Samples: Father = %s\tMother = %s\tChild = %d/%d\n", sample_data[father_pos], sample_data[mother_pos], child_allele1, child_allele2);
+    //LOG_DEBUG_F("Samples: Father = %s\tMother = %s\tChild = %s\n", sample_data[father_pos], sample_data[mother_pos], sample);
 
     // If any parent's alleles can't be read or is missing, can't decide
     if (get_alleles(father_sample, gt_position, &father_allele1, &father_allele2) ||

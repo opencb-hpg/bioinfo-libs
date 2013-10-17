@@ -39,7 +39,7 @@
 
 #define BWiteration(k_in, l_in, k_out, l_out, b, C, C1, O)		 \
   {									 \
-    aux_b = (b);                                                         \
+    aux_b = (b);							 \
     (k_out) = (C1)->vector[aux_b] + getOcompValue(aux_b, (k_in)  , (O)); \
     (l_out) = (C)->vector[aux_b]  + getOcompValue(aux_b, (l_in)+1, (O)); \
   }
@@ -110,9 +110,12 @@ inline void BWExactSearchBackward(char *W, vector *C, vector *C1, comp_matrix *O
   k2 = r->k;
   l2 = r->l;
 
+  //printf("B1º -> %lu - %lu\n", k2, l2);
+
   for(i=r->pos; i>=r->start; i--) {
 
     BWiteration(k2, l2, k2, l2, W[i], C, C1, O);
+    //printf("B -> %d -> %lu - %lu\n", i, k2, l2);
     if (k2 > l2) break;
 
   }
@@ -165,7 +168,8 @@ void BWSearch1(char *W, int start, int end, size_t *vec_k, size_t *vec_l, size_t
 
 void BWSearch1CPU(char *W, vector *C, vector *C1, comp_matrix *O, comp_matrix *Oi, result * res, results_list *r_list);
 
-void BWSearchCPU(char *W, vector *C, vector *C1, comp_matrix *O, result *res, results_list *rl_prev, results_list *rl_next, int num_errors);
+void BWSearchCPUBackward(char *W, vector *C, vector *C1, comp_matrix *O, result *res, results_list *rl_prev, results_list *rl_next, int num_errors);
+void BWSearchCPUForward(char *W, vector *C, vector *C1, comp_matrix *O, result *res, results_list *rl_prev, results_list *rl_next, int num_errors);
 
 void BWSimpleSearch1Backward(char *W, vector *C, vector *C1, comp_matrix *O, result *res, results_list *r_list);
 void BWSimpleSearch1Forward(char *W, vector *C, vector *C1, comp_matrix *O, result *res, results_list *r_list);

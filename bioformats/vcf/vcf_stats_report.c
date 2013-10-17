@@ -179,7 +179,7 @@ static inline int report_variant_missing_data(variant_stats_t *var_stats, FILE *
 
 static inline int report_variant_inheritance_data(variant_stats_t *var_stats, FILE *stats_fd) {
     return fprintf(stats_fd, "%d\t%.2f | %.2f\t%.2f | %.2f\n",
-                   var_stats->mendelian_errors,
+                   var_stats->missing_alleles,
                    var_stats->cases_percent_dominant,
                    var_stats->controls_percent_dominant,
                    var_stats->cases_percent_recessive,
@@ -204,7 +204,7 @@ static void report_vcf_variant_stats_sqlite3(sqlite3 *db, int num_variants, vari
     
     insert_vcf_query_fields_list(fields, db);
     
-    array_list_free(fields, vcf_query_fields_free);
+    array_list_free(fields, NULL);
 }
 
 

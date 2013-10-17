@@ -26,16 +26,15 @@
 #ifndef _BW_IO_
 #define _BW_IO_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <limits.h>
-#include <stddef.h>
-#include <malloc.h>
+#include<stdio.h>
+#include<stdlib.h>
+#include<string.h>
+#include<limits.h>
+#include<stddef.h>
+#include<malloc.h>
+#include<ctype.h>
 
-#include "commons/log.h"
-
-#define nA              4
+#include "commons/string_utils.h"
 
 #define MAX_MISMATCHES  20
 
@@ -49,22 +48,12 @@
 #define TRUE            1
 #define FALSE           0
 
-//TODO: Usar macros para clarificar el codigo.
+//TODO: Usar estas macros para clarificar el codigo.
 #define MATCH  0
 #define DELETION  1
 #define MISMATCH  2
 #define INSERTION 3
 
-
-#define DDD  -1
-#define AAA  0
-#define CCC  1
-#define GGG  2
-#define TTT  3
-#define XXX  4
-
-
-//extern const char alph_rep[];
 //const char alph_rep[] ={'A','C','G','T'};
 
 #ifdef VERBOSE_DBG
@@ -178,27 +167,30 @@
 #endif
 
 #define checkMalloc(D, path)						 \
-  if ((D)==NULL) {							\
-    LOG_FATAL_F("Data structure " #D " in %s is too large", path);	\
+  if ((D)==NULL) {							 \
+    fprintf(stderr, "Data structure " #D " in %s is too large", (path)); \
+    exit(1);								 \
   }
 
 #define checkFileOpen(fp, path)						\
-  if (!fp) {								\
-    LOG_FATAL_F("Error opening file: %s\n", path);			\
+  if (!(fp)) {								\
+    fprintf(stderr, "Error opening file: %s\n", (path));		\
+    exit(1);								\
   }
 
 #define checkFileRead(err, nmemb, path)					\
   if ((err) != (nmemb)) {						\
-    LOG_FATAL_F("Error reading file '%s'\n", path);			\
+    fprintf(stderr, "Error reading file '%s'\n", (path));		\
+    exit(1);								\
   }
 
 #define checkFileWrite(err, nmemb, path)			\
   if ((err) != (nmemb)) {					\
-    LOG_FATAL_F("Error writing file '%s'\n", (path));	        \
+    fprintf(stderr, "Error writing file '%s'\n", (path));	\
+    exit(1);							\
   }
 
 #define timevars() struct timeval t1, t2;
-
 
 #define tic_bwt(msg)				   \
   printf(">> " msg "\n");			   \
@@ -210,24 +202,23 @@
   printf("<< Finished %.0f usecs\n", (t2.tv_sec-t1.tv_sec)*1e6+(t2.tv_usec-t1.tv_usec)); \
   fflush(stdout);
 
-
 typedef struct {
 
   size_t siz;
 
-  unsigned int *desp[nA];
+  unsigned int *desp[4]; // nA
   size_t n_desp;
   size_t m_desp;
 
 #if   defined VECTOR_O_32BIT_COMPRESSION
 
-  unsigned int *count[nA];
+  unsigned int *count[4]; // nA
   size_t n_count;
   size_t m_count;
 
 #elif defined VECTOR_O_64BIT_COMPRESSION
 
-  unsigned long long *count[nA];
+  unsigned long long *count[4];  // nA
   size_t n_count;
   size_t m_count;
 
@@ -253,7 +244,7 @@ typedef struct {
 
 typedef struct {
 
-  char *vector; //TODO: Change to signed char just in case.
+  char *vector;
   size_t n;
 
 } byte_vector;
@@ -292,7 +283,7 @@ typedef struct {
 
 inline void new_results_list(results_list *r_list, unsigned int max_results) {
 
-  //  printf("Size of result %lu\n", sizeof(result)*CHAR_BIT);
+  //printf("Size of result %lu\n", sizeof(result)*CHAR_BIT);
 
   r_list->list = (result *) malloc(max_results * sizeof(result));
   checkMalloc(r_list->list, "new_result_list");
@@ -330,14 +321,16 @@ inline void add_mismatch(result *r, char err_kind, char base, int position) {
 
     r->num_mismatches++;
 
-    //} else {
-    //    exit(1);
+    //  } else {
+
     //    fprintf(stderr, "ERROR: Number of allowed mismatches exceeded: %d\n", r->num_mismatches);
+    //exit(1);
 
   }
+
 }
 
-inline void modify_last_mismatch_3(result *r, char err_kind, char base, int position) {
+inline void modify_last_mismatch3(result *r, char err_kind, char base, int position) {
 
   size_t pos_mismatch = r->num_mismatches-1; // Last mismatch
 
@@ -347,7 +340,7 @@ inline void modify_last_mismatch_3(result *r, char err_kind, char base, int posi
 
 }
 
-inline void modify_last_mismatch_2(result *r, char err_kind, char base) {
+inline void modify_last_mismatch2(result *r, char err_kind, char base) {
 
   size_t pos_mismatch = r->num_mismatches-1; // Last mismatch
 
@@ -356,7 +349,7 @@ inline void modify_last_mismatch_2(result *r, char err_kind, char base) {
 
 }
 
-inline void modify_last_mismatch_1(result *r, char err_kind) {
+inline void modify_last_mismatch1(result *r, char err_kind) {
 
   r->err_kind[r->num_mismatches-1] = err_kind;
 
@@ -386,13 +379,20 @@ inline void add_result(result *orig, results_list *r_list) {
     r_list->num_results++;
 
     copy_result(dest, orig);
+
+    //  } else {
+
+    //    fprintf(stderr, "ERROR: Number of allowed results exceeded: %u\n", r_list->max_results);
+    //exit(1);
+
   }
+
 }
 
 #if defined VECTOR_O_32BIT_COMPRESSION
 
-inline unsigned int bitcount(unsigned int i) { //TODO: Probar la llamada en C para ver si usa la instrucción máquina. //TODO: Programar compresión de 64 bits tb.
-  
+inline unsigned int bitcount(unsigned int i) {
+
   //Parallel binary bit add
   i = i - ((i >> 1) & 0x55555555);
   i = (i & 0x33333333) + ((i >> 2) & 0x33333333);
@@ -427,6 +427,8 @@ inline unsigned int getOcompValue(size_t n, size_t m, comp_matrix *O) {
 
   pos  = m / 64;
   desp = m % 64;
+
+  //printf("****************n = %lu\tm = %lu \n", n, m);
 
   return O->desp[n][pos] + bitcount( O->count[n][pos] << (64 - (desp + 1)) );
 
@@ -639,7 +641,10 @@ void saveUIntCompVector(comp_vector *vector, const char *directory, const char *
 void saveCharVector(byte_vector *vector, const char *directory, const char *name);
 void saveCompMatrix(comp_matrix *matrix, const char *directory, const char *name);
 
-void initReplaceTable();
+void initReplaceTable(const char *str);
+
+//void readNucleotide(char *nucleotide, const char *directory, const char *name);
+//void saveNucleotide(char *nucleotide, const char *directory, const char *name);
 
 char *replaceBases(char *uncoded, char *coded, size_t length);
 
