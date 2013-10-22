@@ -209,9 +209,9 @@ void readCharVector(byte_vector *vector, const char *directory, const char *name
   err = fread(&vector->n, sizeof(size_t),  1, fp);
   checkFileRead(err, 1, path);
 
-  //vector->vector = (char *) malloc(vector->n * sizeof(char));
-  int page_size = sysconf(_SC_PAGESIZE);
-  vector->vector = (int *) memalign(page_size, vector->n * sizeof(unsigned int));
+  vector->vector = (char *) malloc(vector->n * sizeof(char));
+  //int page_size = sysconf(_SC_PAGESIZE);
+  //vector->vector = (int *) memalign(page_size, vector->n * sizeof(unsigned int));
 
   checkMalloc(vector->vector, path);
 

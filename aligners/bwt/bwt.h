@@ -250,6 +250,8 @@ void read_cals_free(read_cals_t *read_cals);
 // general functions
 //-----------------------------------------------------------------------------
 
+alignment_t* add_optional_fields(alignment_t *alignment, size_t n_mappings);
+
 /**
  * @brief  Makes the reverse and complementary from the input sequence.
  * @param  seq input sequence
@@ -306,6 +308,12 @@ size_t bwt_map_inexact_read(fastq_read_t *read,
 			    bwt_optarg_t *bwt_optarg, 
 			    bwt_index_t *index, 
 			    array_list_t *mapping_list);
+
+size_t bwt_map_inexact_read_bs(fastq_read_t *read, 
+			       bwt_optarg_t *bwt_optarg, 
+			       bwt_index_t *index, 
+			       array_list_t *mapping_list, 
+			       int type);
 
 //-----------------------------------------------------------------------------
 // seed functions
