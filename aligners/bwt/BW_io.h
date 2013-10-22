@@ -32,6 +32,7 @@
 #include <limits.h>
 #include <stddef.h>
 #include <malloc.h>
+#include <unistd.h>
 
 #include "commons/log.h"
 

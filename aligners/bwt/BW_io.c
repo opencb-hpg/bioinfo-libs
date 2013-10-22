@@ -135,6 +135,9 @@ void readUIntCompVector(comp_vector *vector, const char *directory, const char *
   checkFileRead(err, 1, path);
 
   vector->vector = (unsigned int *) malloc(vector->n * sizeof(unsigned int));
+  //int page_size = sysconf(_SC_PAGESIZE);
+  //vector->vector = (int *) memalign(page_size, vector->n * sizeof(unsigned int));
+
   checkMalloc(vector->vector, path);
 
   err = fread(vector->vector, sizeof(unsigned int), vector->n, fp);
@@ -163,7 +166,10 @@ void readCharVector(byte_vector *vector, const char *directory, const char *name
   err = fread(&vector->n, sizeof(size_t),  1, fp);
   checkFileRead(err, 1, path);
 
-  vector->vector = (char *) malloc(vector->n * sizeof(char));
+  //vector->vector = (char *) malloc(vector->n * sizeof(char));
+  int page_size = sysconf(_SC_PAGESIZE);
+  vector->vector = (int *) memalign(page_size, vector->n * sizeof(unsigned int));
+
   checkMalloc(vector->vector, path);
 
   err = fread(vector->vector, sizeof(char), vector->n, fp);
