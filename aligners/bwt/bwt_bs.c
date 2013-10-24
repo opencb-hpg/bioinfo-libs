@@ -975,6 +975,210 @@ size_t bwt_map_exact_seeds_seq_by_num_bs(char *seq, size_t num_seeds,
 
 //-----------------------------------------------------------------------------
 
+size_t bwt_generate_cals_bs(char *seq, char *seq2, size_t seed_size, bwt_optarg_t *bwt_optarg, 
+			    bwt_index_t *index, bwt_index_t *index2, array_list_t *cal_list) {
+
+  //printf("New function generate CALs\n");
+  //NEW! Function! Fusion between Seeding and Caling
+  array_list_t *mapping_list = array_list_new(100, 1.25f, COLLECTION_MODE_ASYNCHRONIZED);
+  const int nstrands = 2;
+  const int nchromosomes = 30; //TODO: Parameter
+  
+  linked_list_t ***cals_list = (linked_list_t ***)malloc(sizeof(linked_list_t **)*nstrands);
+
+  for (unsigned int i = 0; i < nstrands; i++) {
+    cals_list[i] = (linked_list_t **)malloc(sizeof(linked_list_t *)*nchromosomes);
+    for (unsigned int j = 0; j < nchromosomes; j++) {
+      cals_list[i][j] = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
+    }
+  }
+
+  int seed_id = 0;
+  size_t len = strlen(seq);
+  size_t len2 = strlen(seq2);
+
+  size_t offset, num_seeds;
+  
+  //printf(" len=%i, seed_size=%i, num_seeds=%i, seq=%s\n", len, seed_size, num_seeds, seq);
+  char *code_seq = (char *) calloc(len, sizeof(char));
+  char *code_seq2 = (char *) calloc(len, sizeof(char));
+
+  // be careful, now we use the table from the index
+  // replaceBases(seq, code_seq, len);
+  bwt_encode_Bases(code_seq, seq, len, &index->table);
+  bwt_encode_Bases(code_seq2, seq2, len2, &index->table);
+
+  // second first seed
+  if (seed_size <= 10) { seed_size = 16; }
+
+  int padding_left = seed_size / 2;
+  int padding_right = padding_left;
+
+  int extra_seed_size = 16;//seed_size;
+  //int first_seed = 16;
+
+  /*
+  // extra seed for splice junctions
+  bwt_map_exact_seed_bs(code_seq, len, padding_left, padding_left + extra_seed_size - 1,
+			bwt_optarg, index, mapping_list, seed_id++);
+
+  insert_seeds_and_merge(mapping_list, cals_list,  len);
+  */
+
+  num_seeds = len / seed_size;
+
+  // first 'pasada'
+  offset = 0;
+  for (size_t i = 0; i < num_seeds; i++) {
+    bwt_map_exact_seed_bs(code_seq, len, offset, offset + seed_size - 1,
+			  bwt_optarg, index, mapping_list, seed_id++);
+    transform_regions(mapping_list);
+    insert_seeds_and_merge(mapping_list, cals_list,  len);
+
+    bwt_map_exact_seed_bs(code_seq2, len2, offset, offset + seed_size - 1,
+			  bwt_optarg, index2, mapping_list, seed_id++);
+    insert_seeds_and_merge(mapping_list, cals_list,  len);
+
+    offset += seed_size;
+  }
+  
+  // last seed
+  if (len % seed_size > 0) {
+    bwt_map_exact_seed_bs(code_seq, len, len - seed_size, len - 1,
+			  bwt_optarg, index, mapping_list, seed_id++);
+    transform_regions(mapping_list);
+    insert_seeds_and_merge(mapping_list, cals_list,  len);
+
+    bwt_map_exact_seed_bs(code_seq2, len2, len2 - seed_size, len2 - 1,
+			  bwt_optarg, index2, mapping_list, seed_id++);
+    insert_seeds_and_merge(mapping_list, cals_list,  len);
+  }
+
+  /*
+  if (len % seed_size != padding_right) {
+    // extra seed for splice junctions
+    bwt_map_exact_seed(code_seq, len, len - extra_seed_size - padding_right, len - padding_right - 1,
+		       bwt_optarg, index, mapping_list, seed_id++);
+    insert_seeds_and_merge(mapping_list, cals_list,  len);
+  }
+  */
+  free(code_seq);
+  free(code_seq2);
+
+  //Store CALs in Array List for return results                                                                                                   
+  size_t start_cal, end_cal;
+  size_t seq_start, seq_end;
+  seed_region_t *s, *s_first, *s_last, *s_aux, *seed_region;
+  cal_t *cal;
+  short_cal_t *short_cal, *short_cal_aux;
+  linked_list_iterator_t itr, itr2;
+  linked_list_item_t *list_item_cal, *list_item_aux;
+  size_t min_cal_size = 20;//cal_optarg->min_cal_size; TODO:PARAMETER
+  const int max_intron_size = 500000; //TODO: Parameter
+  size_t read_length = len;
+
+  for (unsigned int j = 0; j < nchromosomes; j++) {
+    for (unsigned int i = 0; i < nstrands; i++) {
+      linked_list_iterator_init(cals_list[i][j], &itr);
+      list_item_cal = linked_list_iterator_list_item_curr(&itr);
+      while ((list_item_cal != NULL )) {
+	short_cal = (short_cal_t *)list_item_cal->item;
+	if (short_cal->end - short_cal->start + 1 >= min_cal_size) {
+	  linked_list_t *list_aux = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
+	  while (s = (seed_region_t *)linked_list_remove_last(short_cal->sr_list)) {
+	    //TODO: Change all parameters to seed_region_t
+	    append_seed_region_linked_list(list_aux,
+					   s->read_start, s->read_end, 
+					   s->genome_start, s->genome_end, 
+					   s->id);	    
+	    seed_region_free(s);	    
+	  }
+	  cal = cal_new(j, i, short_cal->start, 
+			short_cal->end, short_cal->num_seeds, 
+			list_aux, short_cal->sr_duplicate_list);
+ 	  array_list_insert(cal, cal_list);
+	  
+	  short_cal->sr_duplicate_list = NULL;
+	  
+	  //============= Search if one seed map near to this CAL ================//
+	  s_first = (seed_region_t *)linked_list_get_first(list_aux);	  
+	  s_last = (seed_region_t *)linked_list_get_last(list_aux);
+	  
+	  if (s_first && s_first->read_start > seed_size) {
+	    //Search start seed <-----
+	    list_item_aux = list_item_cal->prev;
+	    while (list_item_aux) {
+	      short_cal_aux = list_item_aux->item;
+	      if (!short_cal_aux ||
+		  short_cal_aux->end - short_cal_aux->start + 1 >= min_cal_size || 
+		  short_cal->start - short_cal_aux->end >= max_intron_size) {
+		break;
+	      }
+	   
+	      linked_list_iterator_init(short_cal_aux->sr_list, &itr2);
+	      s = linked_list_iterator_curr(&itr2);
+	      while (s != NULL) {
+		if (s->read_end < s_first->read_start) {
+		  seed_region = seed_region_new(s->read_start, s->read_end,
+						s->genome_start, s->genome_end, 0);	
+		  array_list_insert(seed_region, cal->candidates_seeds_start);
+		}
+		s = linked_list_iterator_next(&itr2);
+
+	      }
+	      list_item_aux = list_item_aux->prev;	      
+	    }
+	  }	
+
+	  if (s_last && s_last->read_end < read_length - seed_size) {
+	    // Search start seed ----->
+	    list_item_aux = list_item_cal->next;
+	    while (list_item_aux) {
+	      short_cal_aux = list_item_aux->item;
+	      if (!short_cal_aux ||
+		  short_cal_aux->end - short_cal_aux->start + 1 >= min_cal_size || 
+		  short_cal_aux->start - short_cal->end >= max_intron_size) {
+		break;
+	      }
+
+	      linked_list_iterator_init(short_cal_aux->sr_list, &itr2);
+	      s = linked_list_iterator_curr(&itr2);
+	      while (s != NULL) {
+		if (s->read_start > s_last->read_end) {
+		  seed_region = seed_region_new(s->read_start, s->read_end,
+						s->genome_start, s->genome_end, 1);	
+		  array_list_insert(seed_region, cal->candidates_seeds_end);
+		}
+		s = linked_list_iterator_next(&itr2);
+	      }
+	      list_item_aux = list_item_aux->next;
+	    }	    
+	  }
+	  //======================================================================//
+        } 
+	linked_list_iterator_next(&itr);
+	list_item_cal = linked_list_iterator_list_item_curr(&itr);
+      }
+    }
+  }
+
+  for (unsigned int i = 0; i < nstrands; i++) {
+    for (unsigned int j = 0; j < nchromosomes; j++) {
+      linked_list_free(cals_list[i][j], short_cal_free);
+    }
+    free(cals_list[i]);
+  }
+  
+  array_list_free(mapping_list, NULL);
+  free(cals_list);
+
+
+  return array_list_size(cal_list);
+  
+}
+
+//-----------------------------------------------------------------------------
+
 char * readNucleotide(const char *directory, const char *name) {
   size_t err=0;
   FILE *fp;

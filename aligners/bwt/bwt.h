@@ -378,6 +378,9 @@ size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg,
 			 bwt_index_t *index, array_list_t *cal_list);
 
 
+size_t bwt_generate_cals_bs(char *seq, char *seq2, size_t seed_size, bwt_optarg_t *bwt_optarg, 
+			    bwt_index_t *index, bwt_index_t *index2, array_list_t *cal_list);
+
 size_t bwt_generate_cals_between_coords(int strand_target, int chromosome_target,
 					size_t start_target, size_t end_target, 
 					int start_position, int end_posistion, 
