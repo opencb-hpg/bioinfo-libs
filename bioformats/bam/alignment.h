@@ -43,7 +43,7 @@ typedef struct alignment {
     short int template_length;		/**< Template length. */
     int map_quality;			/**< Map quality. */
     int num_cigar_operations;		/**< Number of CIGAR operations. */
-
+    int map_len;
     //flags
     uint8_t is_paired_end;		/**< 0: single end, 1: paired end. */ 
     uint8_t is_paired_end_mapped;	/**< 0: pair not mapped, 1: pair mapped. */

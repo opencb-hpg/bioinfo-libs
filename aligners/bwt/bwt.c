@@ -2149,7 +2149,7 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 			 alignment = alignment_new();
 			 alignment_init_single_end(NULL, strdup(seq_dup), strdup(quality_clipping), !type, 
 						   idx - 1, //index->karyotype.chromosome + (idx-1) * IDMAX,
-						   start_mapping + 1, //index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]), 
+						   start_mapping, //index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]), 
 						   strdup(cigar), num_cigar_ops, 254, 1, (num_mappings > 0), 0, NULL, alignment);
 
 			 array_list_insert((void*) alignment, tmp_mapping_list);
@@ -3297,10 +3297,10 @@ size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg,
   num_seeds = len / seed_size;
 
   //Extra seed for splice junctions
-  bwt_map_exact_seed(code_seq, len, padding_left, padding_left + seed_size - 1,
+  /*bwt_map_exact_seed(code_seq, len, padding_left, padding_left + seed_size - 1,
 		     bwt_optarg, index, mapping_list, seed_id++);
   insert_seeds_and_merge(mapping_list, cals_list,  len);
-
+  */
   // first 'pasada'
   offset = 0;
   for (size_t i = 0; i < num_seeds; i++) {
