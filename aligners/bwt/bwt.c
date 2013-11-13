@@ -275,7 +275,7 @@ void short_cal_free(short_cal_t *short_cal){
     if (short_cal->seeds_ids_array) free(short_cal->seeds_ids_array);
     if (short_cal->sr_list) linked_list_free(short_cal->sr_list, (void *) seed_region_free);
     if (short_cal->sr_duplicate_list) linked_list_free(short_cal->sr_duplicate_list, (void *) seed_region_free);
-
+    
     free(short_cal);
   }
 
@@ -596,30 +596,28 @@ void seq_reverse_complementary(char *seq, unsigned int len){
 
 //-----------------------------------------------------------------------------
 
-bwt_index_t *bwt_index_new(const char *dirname) {
+bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa, bool duplicate_strand) {
 
-  bwt_index_t *index = (bwt_index_t*) calloc(1, sizeof(bwt_index_t));
+  bwt_index_t *index  = (bwt_index_t*) calloc(1, sizeof(bwt_index_t));
+  index->backward     = (bwt_index*)   calloc(1, sizeof(bwt_index));
+  index->forward      = (bwt_index*)   calloc(1, sizeof(bwt_index));
+  index->backward_rev = (bwt_index*)   calloc(1, sizeof(bwt_index));
+  index->forward_rev  = (bwt_index*)   calloc(1, sizeof(bwt_index));
 
+  index->inverse_sa = inverse_sa;
+  index->duplicate_strand = duplicate_strand;
   index->dirname = strdup(dirname);
 
-  readUIntVector(&index->h_C, dirname, "C");
-  readUIntVector(&index->h_C1, dirname, "C1");
-  readCompMatrix(&index->h_O, dirname, "O");
-  readUIntCompVector(&index->S, dirname, "Scomp");
-
-  reverseStrandC(&index->h_rC, &index->h_C,
-  		 &index->h_rC1, &index->h_C1);
-
-  reverseStrandO(&index->h_rO, &index->h_O);
-
-  // 1-error handling 
-  readCompMatrix(&index->h_Oi, dirname, "Oi");
-  readUIntCompVector(&index->Si, dirname, "Scompi");
-
-  reverseStrandO(&index->h_rOi, &index->h_Oi);
+  if (duplicate_strand) {
+    load_bwt_index(NULL, index->backward, dirname, 1, inverse_sa);
+    load_bwt_index(NULL, index->forward, dirname, 0, inverse_sa);
+  } else {
+    load_bwt_index(index->backward_rev,  index->backward, dirname, 1, inverse_sa);
+    load_bwt_index(index->forward_rev, index->forward, dirname, 0, inverse_sa);
+  }
 
   // load karyotype
-  char path[strlen(dirname) + 512];
+  //char path[strlen(dirname) + 512];
   //  sprintf(path, "%s/index.txt", dirname);
   //load_exome_file(&index->karyotype, path);
 
@@ -631,21 +629,23 @@ bwt_index_t *bwt_index_new(const char *dirname) {
 //-----------------------------------------------------------------------------
 
 void bwt_index_free(bwt_index_t *index) {
+
   if (index == NULL) return;
 
   free(index->dirname);
 
-  free(index->h_C.vector);
-  free(index->h_C1.vector);
-  free(index->h_rC.vector);
-  free(index->h_rC1.vector);
+  if (index->duplicate_strand) {
+    free_bwt_index(NULL, index->backward, index->inverse_sa);
+    free_bwt_index(NULL, index->forward, index->inverse_sa);
+  } else {
+    free_bwt_index(index->backward_rev, index->backward, index->inverse_sa);
+    free_bwt_index(index->forward_rev, index->forward, index->inverse_sa);
+  }
 
-  freeCompMatrix(&index->h_O);
-  free(index->S.vector);
-
-  // 1-error handling
-  freeCompMatrix(&index->h_Oi);
-  free(index->Si.vector);
+  free(index->backward);
+  free(index->forward);
+  free(index->backward_rev);
+  free(index->forward_rev);
 
   free(index);
 }
@@ -653,112 +653,78 @@ void bwt_index_free(bwt_index_t *index) {
 //-----------------------------------------------------------------------------
 
 void bwt_generate_index_files(char *ref_file, char *output_dir, 
-			      unsigned int s_ratio) {
+			      unsigned int s_ratio, bool duplicate_strand) {
 
-  byte_vector X, B, Bi;
+  ref_vector X, Xi, B, Bi;
   vector C, C1;
-  comp_vector S, Si, Scomp, Scompi;
-  comp_vector R, Ri, Rcomp, Rcompi;
   comp_matrix O, Oi;
-
+  comp_vector S, R, Si, Ri;
   exome ex;
-  //ex.chromosome = (char *) calloc(INDEX_EXOME*IDMAX, sizeof(char));
-  //ex.start = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
-  //ex.end = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
-  //ex.offset = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
-  
-  initReplaceTable();
 
-  // Calculating BWT
-  calculateBWT(&B, &S, &X, 0, &ex, ref_file);
+  init_replace_table(NULL);
 
-  save_exome_file(&ex, output_dir);
+  encode_reference(&X, &ex, duplicate_strand, ref_file);
+  save_ref_vector(&X, output_dir, "X");
+  save_exome_file(&ex, duplicate_strand, output_dir);
+  print_vector(X.vector, X.n);
 
-  saveCharVector(&X, output_dir, "X");
-  free(X.vector);
+  calculate_and_save_B(&X, output_dir, "B");
 
-  printUIntVector(S.vector, S.n);
-  printUIntVector(B.vector, B.n);
+  read_ref_vector(&B, output_dir, "B");
+  print_vector(B.vector, B.n);
 
-  // Calculating prefix-trie matrices C and O
-  calculateC(&C, &C1, &B, 0);
-  calculateO(&O, &B);
+  calculate_C(&C, &C1, &B);
+  print_vector(C.vector, C.n);
+  print_vector(C1.vector, C1.n);
+  save_vector(&C, output_dir, "C");
+  save_vector(&C1,output_dir, "C1");
 
-  printUIntVector(C.vector, C.n);
-  printUIntVector(C1.vector, C1.n);
-  printCompMatrix(O);
+  calculate_O(&O, &B);
+  print_comp_matrix(O);
+  save_comp_matrix(&O, output_dir, "O");
 
-  saveCharVector(&B, output_dir, "B");
+  calculate_S_and_R(&S, &R, &B, &C, &O, s_ratio);
+  print_vector(S.vector, S.n);
+  print_vector(R.vector, S.n);
+  save_comp_vector(&S, output_dir, "S");
+  save_comp_vector(&R, output_dir, "R");
+
   free(B.vector);
-  saveUIntVector(&C, output_dir, "C");
-  free(C.vector);
-  saveUIntVector(&C1, output_dir, "C1");
-  free(C1.vector);
-  saveCompMatrix(&O, output_dir, "O");
-  freeCompMatrix(&O);
-
-  // Calculating R
-  calculateR(&S, &R);
-
-  printUIntVector(R.vector, R.n);
-
-  // Calculating Scomp Rcomp
-  calculateSRcomp(&S, &Scomp, s_ratio);
-  printUIntVector(Scomp.vector, Scomp.n);
-  calculateSRcomp(&R, &Rcomp, s_ratio);
-  printUIntVector(Rcomp.vector, Rcomp.n);
-
-
-  saveUIntCompVector(&S, output_dir, "S");
+  free_comp_matrix(NULL, &O);
   free(S.vector);
-  saveUIntCompVector(&R, output_dir, "R");
   free(R.vector);
-  saveUIntCompVector(&Scomp, output_dir, "Scomp");
-  free(Scomp.vector);
-  saveUIntCompVector(&Rcomp, output_dir, "Rcomp");
-  free(Rcomp.vector);
 
-  //Calculating BWT of reverse reference
-  calculateBWT(&Bi, &Si, &X, 1, NULL, ref_file);
+  read_ref_vector(&Xi, output_dir, "X");
+  revstring(Xi.vector, Xi.n);
+  save_ref_vector(&Xi, output_dir, "Xi");
+  print_vector(Xi.vector, Xi.n);
 
-  saveCharVector(&X, output_dir, "Xi");
-  free(X.vector);
+  calculate_and_save_B(&Xi, output_dir, "Bi");
 
-  printUIntVector(Bi.vector, Bi.n);
-  printUIntVector(Si.vector, Si.n);
+  read_ref_vector(&Bi, output_dir, "Bi");
+  print_vector(Bi.vector, Bi.n);
 
-  //Calculating inverted prefix-trie matrix Oi
-  calculateO(&Oi, &Bi);
+  calculate_O(&Oi, &Bi);
+  print_comp_matrix(Oi);
+  save_comp_matrix(&Oi, output_dir, "Oi");
 
-  printCompMatrix(Oi);
+  calculate_S_and_R(&Si, &Ri, &Bi, &C, &Oi, s_ratio);
+  print_vector(Si.vector, Si.n);
+  print_vector(Ri.vector, Si.n);
+  save_comp_vector(&Si, output_dir, "Si");
+  save_comp_vector(&Ri, output_dir, "Ri");
 
-  saveCharVector(&Bi, output_dir, "Bi");
   free(Bi.vector);
-
-  saveCompMatrix(&Oi, output_dir, "Oi");
-  freeCompMatrix(&Oi);
-
-  //Calculating Ri
-  calculateR(&Si, &Ri);
-
-  printUIntVector(Ri.vector, Ri.n);
-
-  // Calculating Scompi Rcompi
-  calculateSRcomp(&Si, &Scompi, s_ratio);
-  printUIntVector(Scompi.vector, Scompi.n);
-  calculateSRcomp(&Ri, &Rcompi, s_ratio);
-  printUIntVector(Rcompi.vector, Rcompi.n);
-
-  saveUIntCompVector(&Si, output_dir, "Si");
+  free_comp_matrix(NULL, &Oi);
   free(Si.vector);
-  saveUIntCompVector(&Ri, output_dir, "Ri");
   free(Ri.vector);
-  saveUIntCompVector(&Scompi, output_dir, "Scompi");
-  free(Scompi.vector);
-  saveUIntCompVector(&Rcompi, output_dir, "Rcompi");
-  free(Rcompi.vector);
-}
 
+  free(C.vector);
+  free(C1.vector);
+
+  //TODO: Guardar en un fichero las propiedades del indice: los nucleótidos, la tabla de conversión, el duplicate_strand y el inverse_sa
+
+}
 
 //-----------------------------------------------------------------------------
 // general functions
@@ -864,13 +830,13 @@ size_t bwt_map_exact_seq(char *seq,
       result.pos = end;
       //printf("Before call BWT\n");
       start_timer(t_start);
-      BWExactSearchBackward(code_seq, &index->h_C, &index->h_C1, &index->h_O, &result);
+      BWExactSearchBackward(code_seq, index->backward, &result);
       stop_timer(t_start, t_end, time_bwt);
       //printf("After call BWT\n");
     } else {
       result.pos = start;
       start_timer(t_start);
-      BWExactSearchForward(code_seq, &index->h_rC, &index->h_rC1, &index->h_rO, &result);
+      BWExactSearchForward(code_seq, index->forward_rev, &result);
       stop_timer(t_start, t_end, time_bwt);
       if(l_aux - k_aux + 1 < bwt_optarg->filter_read_mappings) {
 	seq_reverse_complementary(seq_strand, len);

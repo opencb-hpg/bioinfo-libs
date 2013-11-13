@@ -1,0 +1,45 @@
+Import('bwt_env')
+
+bwt_test_env = bwt_env.Clone()
+bwt_test_env['objects'] = []
+		      
+bwt_test_env['CFLAGS'] += ' -m64 -D_LARGEFILE64_SOURCE=1 -D_FILE_OFFSET_BITS=64 -O9 -fPIC -std=c99 -DFM_COMP_64 ' #-DCSALIB_SEARCH -msse4.2 -DVERBOSE_DBG
+bwt_test_env['LINKFLAGS'] += ['-fopenmp']
+
+#bwt_test_env['objects'] = bwt_test_env.Object(Glob('preprocess_dbwt.c, preprocess_dbwt_csalib.c'))
+#bwt_test_env['CPPPATH'].append('..')
+
+preprocess_dbwt = bwt_test_env.Program('../bin/preprocess_dbwt', 
+                    	         source = ['preprocess_dbwt.c',
+				 	   '../bwt_commons.o',
+					   '../search/libsearch.a',
+				           '../dbwt/libdbwt.a'
+                                          ]
+                                )
+
+preprocess_dbwt_csalib = bwt_test_env.Program('../bin/preprocess_dbwt_csalib', 
+                    	         source = ['preprocess_dbwt_csalib.c',
+				 	   '../bwt_commons.o',
+					   '../search/search.a',
+				           '../dbwt/libdbwt.a',
+					   '../csalib/libcsa.a'
+                                          ]
+                                )
+
+exact_search = bwt_test_env.Program('../bin/exact_search', 
+                    	         source = ['exact_search.c',
+				 	   '../bwt_commons.o',
+					   '../search/search.a',
+					   '../csalib/libcsa.a'
+                                          ]
+                                )
+
+inexact_search = bwt_test_env.Program('../bin/inexact_search', 
+                    	         source = ['inexact_search.c',
+				 	   '../bwt_commons.o',
+					   '../search/search.a',
+					   '../csalib/libcsa.a'
+                                          ]
+                                )
+
+#print bwt_test_env['objects']

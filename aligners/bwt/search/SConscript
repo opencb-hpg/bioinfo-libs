@@ -1,0 +1,15 @@
+Import('aligners_env')
+
+search_env = aligners_env.Clone()
+search_env['objects'] = []
+		      
+search_env['CFLAGS'] += ' -m64 -D_LARGEFILE64_SOURCE=1 -D_FILE_OFFSET_BITS=64 -O9 -fPIC -std=c99 -DFM_COMP_64' #-msse4.2 -DCSALIB_SEARCH -DVERBOSE_DBG
+search_env['LINKFLAGS'] += ['-fopenmp']
+
+search_env['objects'] = search_env.Object(Glob('*.c'))
+
+#print search_env['objects']
+
+#search_env['CPPPATH'].append('..')
+
+search_env.Library('search', search_env['objects'])
