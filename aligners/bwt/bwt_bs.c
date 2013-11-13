@@ -258,7 +258,7 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
 			     bwt_optarg_t *bwt_optarg, 
 			     bwt_index_t *index, 
 			     array_list_t *mapping_list,
-			     int id) {
+			     int id, int type) {
   
   //printf("Process New Seeds\n");
 
@@ -292,7 +292,7 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
   int actual_mappings = 0;
   struct timeval t_start, t_end;
 
-  for (short int type = 1; type >= 1; type--) {
+  //for (short int type = 1; type >= 1; type--) {
     result.k = 0;
     result.l = index->h_O.siz - 2;
     result.start = start;
@@ -307,6 +307,16 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
       BWExactSearchBackward(code_seq, &index->h_C, &index->h_C1, &index->h_O, &result);
       //BWExactSearchBackward(code_seq, start, end, &index->h_C, &index->h_C1, &index->h_O, result_p);
       stop_timer(t_start, t_end, time_bwt_seed);
+    } else {
+      // strand -
+      aux_seq_start = seq_len - seq_end - 1;
+      aux_seq_end = seq_len - seq_start - 1;
+      //printf("Translate coords %i-%i(id %i)\n", aux_seq_start, aux_seq_end, id);
+      result.pos = start;      
+      start_timer(t_start);
+      BWExactSearchForward(code_seq, &index->h_rC, &index->h_rC1, &index->h_rO, &result);
+      //BWExactSearchForward(code_seq, start, end, &index->h_rC, &index->h_rC1, &index->h_rO, result_p);
+      stop_timer(t_start, t_end, time_bwt_seed);
     }
 
     //start_timer(t_start);
@@ -319,6 +329,7 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
     if (actual_mappings > bwt_optarg->filter_seed_mappings) {
       //discard_seed = 1;
       //break;
+      printf("**************** EXCEED mappings: %lu\n", actual_mappings);
       k_aux = result.k;
       l_aux = result.k + 10;
 
@@ -345,11 +356,11 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
       
       if (key + len <= index->karyotype.offset[idx]) {
 	//start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
-	/*printf("Strand:%c\tchromosome:%s\tStart:%u\tend:%u\n",plusminus[type],
-	  index->karyotype.chromosome + (idx-1) * IDMAX,
-	  start_mapping, start_mapping + len);
-	*/
+	
 	start_mapping = index->karyotype.start[idx-1] + (key - index->karyotype.offset[idx-1]);
+	printf("\t\tstrand:%c\tchromosome:%s\tstart:%u\tend:%u\n",plusminus[type],
+	       index->karyotype.chromosome + (idx-1) * IDMAX,
+	       start_mapping, start_mapping + len);
 	// save all into one alignment structure and insert to the list
 
 	region = region_bwt_new(idx, !type, start_mapping, start_mapping + len, aux_seq_start, aux_seq_end, seq_len, id);
@@ -364,7 +375,7 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
       }
     }
     //stop_timer(t_start, t_end, time_search_seed);
-  }
+  //}
   //  free(result_p);
   /*
   if (discard_seed) {
@@ -776,7 +787,7 @@ size_t __bwt_map_inexact_read_bs(fastq_read_t *read,
      int header_len;
      for (int m = n_mappings - 1; m >= 0; m--) {
        alig_1 = array_list_remove_at(m, tmp_mapping_list);
-       alignment_print(alig_1);
+       //alignment_print(alig_1);
        if (delete_mark[m]) {
 	 if (!is_secondary_alignment(alig_1)) { primary_delete = 1; }
 	 alignment_free(alig_1);
@@ -932,7 +943,7 @@ inline size_t seeding_bs(char *code_seq, size_t seq_len, size_t num_seeds,
     end = start + seed_size;
     if (end >= seq_len) end = seq_len;
     num_mappings = bwt_map_exact_seed_bs(code_seq, seq_len, start, end - 1,
-					 bwt_optarg, index, mapping_list, seed_id);
+					 bwt_optarg, index, mapping_list, seed_id, 0);
     seed_id++;
     total_mappings += num_mappings;
     //    LOG_DEBUG_F("\tseed %i\t[%i - %i], length read = %i, num. mappings = %i\n", 
@@ -1006,7 +1017,7 @@ size_t bwt_generate_cals_bs(char *seq, char *seq2, size_t seed_size, bwt_optarg_
   // be careful, now we use the table from the index
   // replaceBases(seq, code_seq, len);
   bwt_encode_Bases(code_seq, seq, len, &index->table);
-  bwt_encode_Bases(code_seq2, seq2, len2, &index->table);
+  bwt_encode_Bases(code_seq2, seq2, len2, &index2->table);
 
   // second first seed
   if (seed_size <= 10) { seed_size = 16; }
@@ -1025,6 +1036,48 @@ size_t bwt_generate_cals_bs(char *seq, char *seq2, size_t seed_size, bwt_optarg_
   insert_seeds_and_merge(mapping_list, cals_list,  len);
   */
 
+  {
+    size_t num_mappings;
+    size_t num_seeds = 10;
+    size_t start, end, offset_end = len - 16;
+    size_t n_seeds = num_seeds;
+    size_t offset_inc = ceil(1.0f * len / (num_seeds + 1));
+    if (offset_inc <= 0) offset_inc = 1;
+
+    printf("+++++++++++ read1 %s ++++++++++++++\n", seq);
+    printf("+++++++++++ read2 %s ++++++++++++++\n", seq2);
+
+    start = 0;
+    for (size_t i = 0; i < n_seeds; i++) {
+      end = start + seed_size;
+      if (end >= len) end = len;
+
+      //start = 10;
+      //end = 33;
+      
+      num_mappings = bwt_map_exact_seed_bs(code_seq, len, start, end - 1,
+					   bwt_optarg, index,  mapping_list, seed_id++, 0);
+      printf("----------- seed %lu (%lu - %lu) -> %lu mappings\n", seed_id, start, end, num_mappings);
+      //transform_regions(mapping_list);
+      insert_seeds_and_merge(mapping_list, cals_list,  len);
+      
+      num_mappings = bwt_map_exact_seed_bs(code_seq2, len2, start, end - 1,
+					   bwt_optarg, index2, mapping_list, seed_id++, 1);
+      printf("----------- seed %lu (%lu - %lu) -> %lu mappings\n", seed_id, start, end, num_mappings);
+      insert_seeds_and_merge(mapping_list, cals_list,  len);
+      
+      start += offset_inc;
+      if (start > offset_end) {
+	if (offset_inc == 1) break;
+	start = offset_inc / 2;
+      }
+    }
+  }
+
+
+
+
+  /*
   num_seeds = len / seed_size;
 
   // first 'pasada'
@@ -1053,7 +1106,7 @@ size_t bwt_generate_cals_bs(char *seq, char *seq2, size_t seed_size, bwt_optarg_
 			  bwt_optarg, index2, mapping_list, seed_id++);
     insert_seeds_and_merge(mapping_list, cals_list,  len);
   }
-
+  */
   /*
   if (len % seed_size != padding_right) {
     // extra seed for splice junctions
