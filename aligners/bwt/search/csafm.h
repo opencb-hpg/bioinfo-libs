@@ -50,8 +50,8 @@ typedef uint32_t FM_COMP_TYPE;
 
 typedef struct {
 
-	SA_TYPE **desp; // nA
-	SA_TYPE siz; //Real number of columns of the uncompressed matrix
+  SA_TYPE **desp; // nA
+  SA_TYPE siz; //Real number of columns of the uncompressed matrix
   SA_TYPE n_desp;
   SA_TYPE m_desp;
 
@@ -65,17 +65,17 @@ typedef struct {
 
 typedef struct {
 
-	SA_TYPE *vector;
+  SA_TYPE *vector;
   SA_TYPE n;
 
 } vector;
 
 typedef struct {
 
-	SA_TYPE *vector;
+  SA_TYPE *vector;
 
   SA_TYPE siz; //Real size of the uncompressed vector
-	SA_TYPE n;
+  SA_TYPE n;
   SA_TYPE ratio;
 
 } comp_vector;
@@ -184,24 +184,24 @@ inline uint8_t get_B_from_O(SA_TYPE m, comp_matrix *O) {
 
 #if defined FM_COMP_32 || FM_COMP_64
 
-	m++;
+  m++;
 
-	SA_TYPE pos, desp;
+  SA_TYPE pos, desp;
   pos  = m / FM_COMP_VALUE;
   desp = m % FM_COMP_VALUE;
 
-	for(uint8_t i=0; i<O->n_count; i++) {
+  for(uint8_t i=0; i<O->n_count; i++) {
     if ( ( (O->count[i][pos] >> desp) & ((FM_COMP_TYPE) 1)) != 0) return i;
   }
 
 #else
 
-	for(uint8_t i=0; i<O->n_desp; i++)
+  for(uint8_t i=0; i<O->n_desp; i++)
     if ( (O->desp[i][m] < O->desp[i][m+1]) ) return i;
 
 #endif
 
-	return (uint8_t) -1;
+  return (uint8_t) -1;
 
 }
 

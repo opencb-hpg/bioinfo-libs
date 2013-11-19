@@ -38,10 +38,8 @@ typedef struct {
 		(k_out) = (index)->C1.vector[(b)] + get_O((b), (k_in) , &((index)->O));\
 		(l_out) = (index)->C.vector[(b)] + get_O((b), (l_in)+1, &((index)->O));\
 	} while (0);
-
 #endif
-
-//printf("k-> %lu, l-> %lu, O(k) -> %u, O(l) -> %u, C -> %u, C1 -> %u\n", (k_out), (l_out), get_O((b), (k_in), (index)->O), get_O((b), (l_in)+1, (index)->O), (index)->C->vector[(b)], (index)->C1->vector[(b)]);
+//printf("k-> %lu, l-> %lu, C -> %u, C1 -> %u\n", (k_out), (l_out), /*get_O((b), (k_in), &((index)->O)), get_O((b), (l_in)+1, &((index)->O)),*/ (index)->C.vector[(b)], (index)->C1.vector[(b)]); \
 
 #if defined CSALIB_SEARCH
 
@@ -90,26 +88,37 @@ inline void free_bwt_index(bwt_index *index_rev, bwt_index *index) {
 inline void load_bwt_index(bwt_index *index_rev, bwt_index *index, const char *directory, int direction, bool inverse_sa) {
 
 	if (direction) {
-		read_vector(&(index->C),      directory, "C");
-		read_vector(&(index->C1),     directory, "C1");
-		read_comp_matrix(&(index->O), directory, "O");
-		read_comp_vector(&(index->S), directory, "S");
-		if (inverse_sa) read_comp_vector(&(index->R), directory, "R");
+	  read_vector(&(index->C),      directory, "C");
+	  read_vector(&(index->C1),     directory, "C1");
+	  read_comp_matrix(&(index->O), directory, "O");
+	  read_comp_vector(&(index->S), directory, "S");
+	  if (inverse_sa) read_comp_vector(&(index->R), directory, "R");
 	} else {
-		read_vector(&(index->C),      directory, "C");
-		read_vector(&(index->C1),     directory, "C1");
-		read_comp_matrix(&(index->O), directory, "Oi");
-		read_comp_vector(&(index->S), directory, "Si");
-		if (inverse_sa) read_comp_vector(&(index->R), directory, "Ri");
+	  read_vector(&(index->C),      directory, "C");
+	  read_vector(&(index->C1),     directory, "C1");
+	  read_comp_matrix(&(index->O), directory, "Oi");
+	  read_comp_vector(&(index->S), directory, "Si");
+	  if (inverse_sa) read_comp_vector(&(index->R), directory, "Ri");
 	}
-
+	
 	if (index_rev != NULL) {
-		reverse_strand_C(&(index_rev->C), &(index->C), &(index_rev->C1), &(index->C1));
-		reverse_strand_O(&(index_rev->O), &(index->O));
-		index_rev->S = index->S;
-		if (inverse_sa) index_rev->R = index->R;
-	}
+	  reverse_strand_C(&(index_rev->C), &(index->C), &(index_rev->C1), &(index->C1));
+	  reverse_strand_O(&(index_rev->O), &(index->O));
+	  
+	  index_rev->S.vector = index->S.vector;
+	  index_rev->S.siz = index->S.siz;
+	  index_rev->S.n = index->S.n;
+	  index_rev->S.ratio = index->S.ratio;
 
+	  if (inverse_sa) {
+	    index_rev->R.vector = index->R.vector;
+	    index_rev->R.siz = index->R.siz;
+	    index_rev->R.n = index->R.n;
+	    index_rev->R.ratio = index->R.ratio;
+	  }
+
+	}
+	
 }
 
 inline void free_bwt_index(bwt_index *index_rev, bwt_index *index, bool inverse_sa) {

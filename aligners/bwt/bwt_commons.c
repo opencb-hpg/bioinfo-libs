@@ -86,7 +86,7 @@ void init_replace_table(const char *str) {
 
   } else {
 
-		nA = strlen(str);
+    nA = strlen(str);
 
     for (uint8_t i = 0; i < nA; i++) {
       rev_table[i] = toupper(str[i]);
@@ -94,7 +94,7 @@ void init_replace_table(const char *str) {
       table[toupper(str[i])] = i;
       table[tolower(str[i])] = i;
 
-			if      (toupper(str[i]) == 'A') AA = i;
+      if      (toupper(str[i]) == 'A') AA = i;
       else if (toupper(str[i]) == 'C') CC = i;
       else if (toupper(str[i]) == 'G') GG = i;
       else if (toupper(str[i]) == 'T') TT = i;
@@ -102,10 +102,10 @@ void init_replace_table(const char *str) {
 
   }
 
-	reverse[AA] = TT;
-	reverse[CC] = GG;
-	reverse[GG] = CC;
-	reverse[TT] = AA;
+  reverse[AA] = TT;
+  reverse[CC] = GG;
+  reverse[GG] = CC;
+  reverse[TT] = AA;
 
 }
 

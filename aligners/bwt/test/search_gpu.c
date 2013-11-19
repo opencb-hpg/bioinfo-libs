@@ -98,7 +98,7 @@ void *writeResults(void *threadid) {
 			free(r_list.list);
 
 			//printf("W -> Saliendo\n");
-			//printf("%lu founds of %lu -> %.2f, discarded %lu -> %.2f\n", contador, total, contador * 100.0 / total, descartadas, contador * 100.0 / (total-descartadas));
+			printf("%lu founds of %lu -> %.2f, discarded %lu -> %.2f\n", contador, total, contador * 100.0 / total, descartadas, contador * 100.0 / (total-descartadas));
 			pthread_exit(NULL);
 
 		}

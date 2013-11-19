@@ -22,12 +22,12 @@ void free_comp_matrix(comp_matrix *reverse, comp_matrix *strand) {
 // el análisis con menos de 4 bases. ¿¿¿Esto está hecho???
 void reverse_strand_C(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1) {
 
-	r_C->n  = s_C->n; r_C1->n = s_C1->n;
+  r_C->n  = s_C->n; r_C1->n = s_C1->n;
 
-	r_C->vector  = (SA_TYPE *)malloc(r_C->n  * sizeof(SA_TYPE));
-	check_malloc(r_C->vector,  "reverseStrandC r_C");
-	r_C1->vector = (SA_TYPE *)malloc(r_C1->n * sizeof(SA_TYPE));
-	check_malloc(r_C1->vector, "reverseStrandC r_C1");
+  r_C->vector  = (SA_TYPE *)malloc(r_C->n  * sizeof(SA_TYPE));
+  check_malloc(r_C->vector,  "reverseStrandC r_C");
+  r_C1->vector = (SA_TYPE *)malloc(r_C1->n * sizeof(SA_TYPE));
+  check_malloc(r_C1->vector, "reverseStrandC r_C1");
 
   if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
     r_C->vector[AA] = s_C->vector[TT]; r_C1->vector[AA] = s_C1->vector[TT];
@@ -56,8 +56,8 @@ void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O) {
   r_O->n_desp = s_O->n_desp;
   r_O->m_desp = s_O->m_desp;
 
-	r_O->desp = (SA_TYPE **) malloc(r_O->n_desp * sizeof(SA_TYPE *));
-	check_malloc(r_O->desp, "reverse_strand_O");
+  r_O->desp = (SA_TYPE **) malloc(r_O->n_desp * sizeof(SA_TYPE *));
+  check_malloc(r_O->desp, "reverse_strand_O");
 
   if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
     r_O->desp[AA] = s_O->desp[TT];
@@ -82,8 +82,8 @@ void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O) {
   r_O->n_count = s_O->n_count;
   r_O->m_count = s_O->m_count;
 
-	r_O->count = (FM_COMP_TYPE **) malloc(r_O->n_count * sizeof(FM_COMP_TYPE *));
-	check_malloc(r_O->count, "reverse_strand_O");
+  r_O->count = (FM_COMP_TYPE **) malloc(r_O->n_count * sizeof(FM_COMP_TYPE *));
+  check_malloc(r_O->count, "reverse_strand_O");
 
   if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
     r_O->count[AA] = s_O->count[TT];
@@ -112,7 +112,7 @@ void read_vector(vector *vector, const char *directory, const char *name) {
   size_t err=0;
   FILE *fp;
 
-	char path[500]; //TODO: Change to dynamic allocation to avoid buffer overflow
+  char path[500]; //TODO: Change to dynamic allocation to avoid buffer overflow
   path[0]='\0';
   strcat(path, directory);
   strcat(path, "/");
@@ -131,7 +131,7 @@ void read_vector(vector *vector, const char *directory, const char *name) {
   err = fread(vector->vector, sizeof(SA_TYPE), vector->n, fp);
   check_file_read(err, vector->n, path);
 
-	fclose(fp);
+  fclose(fp);
 }
 
 void read_comp_vector(comp_vector *vector, const char *directory, const char *name) {

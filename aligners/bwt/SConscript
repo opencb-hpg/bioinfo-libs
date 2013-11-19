@@ -1,13 +1,21 @@
 import os
 
+print os.getcwd()
+
 Import('aligners_env')
 
 bwt_env = aligners_env.Clone()
 bwt_env['objects'] = []
 
+aligners_env['objects'] += aligners_env.Object(Split('bwt_commons.c'))
+
+#print bwt_env['objects']
+
 formats = ['csalib', 'dbwt', 'search', 'test']
 for dir in formats:
     SConscript(os.path.join(dir, 'SConscript'), exports = ['aligners_env', 'bwt_env'])
 
-bwt_env.Object(Split('bwt_commons.c genome.c bwt.c'))
-#aligners_env['objects'] += aligners_env.Object(Split('bwt_commons.c'))
+#aligners_env['objects'] += Split('%s/search/libsearch.a' % os.getcwd())
+
+aligners_env['CFLAGS'] += " -DFM_COMP_64 "
+aligners_env['objects'] += aligners_env.Object(Split('genome.c bwt.c'))

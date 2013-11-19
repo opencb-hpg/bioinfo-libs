@@ -72,7 +72,7 @@ void *writeResults(void *threadid) {
 			fclose(output_file);
 
 			//printf("W -> Saliendo\n");
-			//printf("%lu founds of %ju -> found %.2f, discarded %ju\n", contador, total, contador * 100.0 / total, descartadas * 100 / total);
+			printf("%lu founds of %ju -> found %.2f, discarded %ju\n", contador, total, contador * 100.0 / total, descartadas * 100 / total);
 			pthread_exit(NULL);
 
 		}
@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
 	  load_bwt_index(&backward_rev, &backward, argv[2], 1, true);
 	  load_bwt_index(&forward_rev, &forward, argv[2], 0, true);
 	}
-
+	
 	h_Worig  = (char*) malloc(MAX_READ_THREAD * MAXLINE * sizeof(char));
 	check_malloc(h_Worig,  "main");
 	h_Worig2 = (char*) malloc(MAX_READ_THREAD * MAXLINE * sizeof(char));
@@ -389,10 +389,10 @@ int main(int argc, char **argv) {
 	new_results_list(&rl_next, RESULTS); new_results_list(&rl_next_i, RESULTS);
 
 	for(int i=0; i<MAX_READ_THREAD; i++) {
-		new_results_list(rl_final  + i, RESULTS);
-		new_results_list(rl_final2 + i, RESULTS);
-		new_results_list(rl_final_r  + i, RESULTS);
-		new_results_list(rl_final_r2 + i, RESULTS);
+	  new_results_list(rl_final  + i, RESULTS);
+	  new_results_list(rl_final2 + i, RESULTS);
+	  new_results_list(rl_final_r  + i, RESULTS);
+	  new_results_list(rl_final_r2 + i, RESULTS);
 	}
 
 	k = (intmax_t *) malloc(RESULTS * sizeof(intmax_t));
@@ -527,7 +527,7 @@ int main(int argc, char **argv) {
 	  free_bwt_index(NULL, &forward, true);
 	} else {
 	  free_bwt_index(&backward_rev, &backward, true);
-	  free_bwt_index(&forward_rev, &forward, true);
+	  free_bwt_index(&forward_rev, &forward,true);
 	}
 
 	free(h_We);

@@ -16,6 +16,7 @@
 
 #include "search/search.h"
 #include "search/preprocess.h"
+#include "search/runtime.h"
 #include "bwt_commons.h"
 
 #define NONE_HARD_CLIPPING 0
@@ -111,8 +112,8 @@ cal_t *cal_new(const size_t chromosome_id,
                const size_t start,
                const size_t end,
                const size_t num_seeds,
-               const linked_list_t *sr_list,
-               const linked_list_t *sr_duplicate_list);
+               linked_list_t *sr_list,
+               linked_list_t *sr_duplicate_list);
 
 void cal_free(cal_t *cal);
 
