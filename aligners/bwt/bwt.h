@@ -209,28 +209,44 @@ bwt_optarg_t *bwt_optarg_new(const size_t num_errors,
 
 void bwt_optarg_free(bwt_optarg_t *optarg);
 
+
 //-----------------------------------------------------------------------------
 
-typedef struct {
+typedef struct bwt_config {
+  uint8_t nA;
+  uint8_t AA, CC, GG, TT;
 
+  uint8_t table[128];
+  char rev_table[4];
+  char reverse[4];
+  char nucleotides[64];
+} bwt_config_t;
+
+
+typedef struct {
   bool inverse_sa;
   bool duplicate_strand;
-
   exome karyotype;
-
+  bwt_config_t bwt_config;
   bwt_index *backward;
   bwt_index *forward;
   bwt_index *backward_rev;
   bwt_index *forward_rev;
-
   char *dirname;
-
 } bwt_index_t;
 
 bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa, bool duplicate_strand);
+
 void bwt_index_free(bwt_index_t *index);
 
 void bwt_generate_index_files(char *ref_file, char *output_dir, unsigned int s_ratio, bool duplicate_strand);
+
+void bwt_generate_index_files_bs(char *ref_file, char *output_dir, 
+				 unsigned int s_ratio, char *bases);
+
+void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O);
+
+void reverse_strand_C(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1);
 
 //-----------------------------------------------------------------------------
 
@@ -252,6 +268,8 @@ void read_cals_free(read_cals_t *read_cals);
 //-----------------------------------------------------------------------------
 // general functions
 //-----------------------------------------------------------------------------
+
+alignment_t* add_optional_fields(alignment_t *alignment, size_t n_mappings);
 
 /**
  * @brief  Makes the reverse and complementary from the input sequence.
@@ -310,6 +328,12 @@ size_t bwt_map_inexact_read(fastq_read_t *read,
 			    bwt_index_t *index, 
 			    array_list_t *mapping_list);
 
+size_t bwt_map_inexact_read_bs(fastq_read_t *read, 
+			       bwt_optarg_t *bwt_optarg, 
+			       bwt_index_t *index, 
+			       array_list_t *mapping_list, 
+			       int type);
+
 //-----------------------------------------------------------------------------
 // seed functions
 //-----------------------------------------------------------------------------
@@ -338,6 +362,12 @@ size_t bwt_map_exact_seeds_between_coords(int start_position, int end_position,
 					  bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
 					  array_list_t *mapping_list, int extra_seed,
 					  int *last_seed_id);
+
+size_t bwt_map_exact_seeds_seq_by_num_bs(char *seq, size_t num_seeds,
+					 size_t seed_size, size_t min_seed_size,
+					 bwt_optarg_t *bwt_optarg, bwt_index_t *index, 
+					 array_list_t *mapping_list);
+
 //-----------------------------------------------------------------------------
 
 size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_size,
@@ -366,6 +396,9 @@ size_t bwt_map_exact_seeds_by_region(int start_position, int end_position,
 size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg, 
 			 bwt_index_t *index, array_list_t *cal_list);
 
+
+size_t bwt_generate_cals_bs(char *seq, char *seq2, size_t seed_size, bwt_optarg_t *bwt_optarg, 
+			    bwt_index_t *index, bwt_index_t *index2, array_list_t *cal_list);
 
 size_t bwt_generate_cals_between_coords(int strand_target, int chromosome_target,
 					size_t start_target, size_t end_target, 
@@ -445,6 +478,18 @@ void bwt_map_inexact_array_list_by_filter(array_list_t *reads,
 					  size_t *num_unmapped, 
 					  size_t *unmapped_indices);
 
+void bwt_map_inexact_array_list_by_filter_bs(array_list_t *reads,
+					     bwt_optarg_t *bwt_optarg, 
+					     bwt_index_t *index,
+					     array_list_t **lists,
+					     size_t *num_unmapped, 
+					     size_t *unmapped_indices);
+
+size_t bwt_map_forward_inexact_seq(char *seq, 
+				   bwt_optarg_t *bwt_optarg, 
+				   bwt_index_t *index, 
+				   array_list_t *mapping_list);
+  
 size_t bwt_generate_cal_list_rna_linked_list(array_list_t *mapping_list,
 					     cal_optarg_t *cal_optarg,
 					     array_list_t *cal_list,
@@ -465,7 +510,13 @@ size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
 				    int seed_id);
 
 */
+
 //-----------------------------------------------------------------------------
+void initReplaceTable_bs(const char *str);
+
+char * readNucleotide(const char *directory, const char *name);
+
+void saveNucleotide(char *nucleotide, const char *directory, const char *name);
 //-----------------------------------------------------------------------------
 
 #endif // BWT_H

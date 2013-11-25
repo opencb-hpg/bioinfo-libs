@@ -7,8 +7,8 @@
 #include <ctype.h>
 #include <inttypes.h>
 
-#define MAXLINE      500
-#define MAXLINECOMP  125
+#define MAXLINE      1000
+#define MAXLINECOMP  250
 
 //The meaning of Insertion and Deletion may be swapped to the meaning of the SAM file format
 #define MATCH	  0
@@ -99,12 +99,7 @@ extern size_t cur_alloc, max_alloc;
 //-----------------------------------------------------------------------------
 
 
-extern uint8_t nA;
-extern uint8_t AA, CC, GG, TT;
 
-extern uint8_t table[128];
-extern char rev_table[4];
-extern char reserve[4];
 
 /**
  *  @brief Inits table for nucleotide coding/decoding 
@@ -123,7 +118,7 @@ void init_replace_table(const char *str);
  * 
  *  Encodes a sequence of plain nucleotides
  */
-void encode_bases(uint8_t* dest, char* src, uintmax_t length);
+void encode_bases(uint8_t* dest, char* src, uintmax_t length, uint8_t *table);
 
 /**
  *  @brief Decodes a sequence of plain nucleotides
@@ -133,7 +128,7 @@ void encode_bases(uint8_t* dest, char* src, uintmax_t length);
  * 
  *  Encodes a sequence of plain nucleotides
  */
-void decode_bases(char* dest, uint8_t* src, uintmax_t length);
+void decode_bases(char* dest, uint8_t* src, uintmax_t length, char *rev_table);
 
 void revstring(uint8_t *X, uintmax_t nX);
 void revstrand(uint8_t *X, uintmax_t nX);

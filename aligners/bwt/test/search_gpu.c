@@ -160,31 +160,47 @@ void *writeResults(void *threadid) {
 				search[0] = '\0';
 				strncat(search, store_Worig + i * MAXLINE, store_nWe[i]);
 
-				for(int type=1; type>=0; type--) {
+				int n_count = 0;
+				for (uint64_t nn=0; nn<store_nWe[i]; nn++) {
+					if (search[nn] == 'N') n_count++;
+					if (n_count>1) break; 
+				}
 
-					h_kaux = store_h_k + MAX_READ_GPU * type;
-					h_laux = store_h_l + MAX_READ_GPU * type;
+				if (n_count>num_errors) {
 
-					//fprintf(output_file, "%u - %u\n", h_kaux[i], h_laux[i]);
-					//printf("%u - %u\n", h_kaux[i], h_laux[i]);
+					descartadas++;
 
-					for (intmax_t j=h_kaux[i]; j<=h_laux[i]; j++) {
+				} else {
 
-						key = get_SA(j, &backward);
+					for(int type=1; type>=0; type--) {
 
-						index = binsearch(ex.offset, ex.size, key);
+						h_kaux = store_h_k + MAX_READ_GPU * type;
+						h_laux = store_h_l + MAX_READ_GPU * type;
 
-						if(key + store_nWe[i] <= ex.offset[index]) {
-							found = true;
-							fprintf(output_file, "read_%ju %c %s %ju 0 %s %s\n", num_write + i, plusminus[type], ex.chromosome + (index-1)*IDMAX, (uintmax_t) ex.start[index-1] + (key - ex.offset[index-1]), search, search);
+						//fprintf(output_file, "%u - %u\n", h_kaux[i], h_laux[i]);
+						//printf("%u - %u\n", h_kaux[i], h_laux[i]);
+
+						for (intmax_t j=h_kaux[i]; j<=h_laux[i]; j++) {
+
+							key = get_SA(j, &backward);
+
+							index = binsearch(ex.offset, ex.size, key);
+
+							if(key + store_nWe[i] <= ex.offset[index]) {
+								found = true;
+								fprintf(output_file, "read_%ju %c %s %ju 0 %s %s\n", num_write + i, plusminus[type], ex.chromosome + (index-1)*IDMAX, (uintmax_t) ex.start[index-1] + (key - ex.offset[index-1]), search, search);
+							}
+
 						}
 
-					}
+					} //type
 
 				}
 
 				if (!found)
 					fprintf(notfound_file, ">read_%ju\n%s\n", num_write + i, search);
+				else
+					contador++;
 
 			}
 
@@ -204,20 +220,13 @@ void *writeResults(void *threadid) {
 
 				bool found = false, found2 = false;
 
-				//TODO: La cadena de busqueda debera calcularse para cada resultado correcto
-
-				//search[0] = '\0';
-				//strncat(search, store_Worig + i*MAXLINE, store_nWe[i]);
-
 				int n_count = 0;
 				for (uint64_t nn=0; nn<store_nWe[i]; nn++) {
-					if (search[nn] == 'N') n_count++;
+					if (store_Worig[i*MAXLINE + nn] == 'N') n_count++;
 					if (n_count>1) break; 
 				}	
 
-				//if (strcmp(search, "NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN")) {
-
-				if (n_count>1) {
+				if (n_count>num_errors) {
 
 					descartadas++;
 

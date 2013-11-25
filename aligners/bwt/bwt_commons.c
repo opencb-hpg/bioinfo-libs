@@ -65,6 +65,7 @@ uint8_t table[128];
 char rev_table[4];
 uint8_t reverse[4];
 
+/*
 void init_replace_table(const char *str) {
 
   if (str == NULL) {
@@ -112,13 +113,14 @@ void init_replace_table(const char *str) {
 void init_table() {
   init_replace_table(NULL);
 }
+*/
 
-void encode_bases(uint8_t* dest, char* src, uintmax_t length) {
+void encode_bases(uint8_t* dest, char* src, uintmax_t length, uint8_t *table) {
   for (uintmax_t i=0; i<length; i++)
     dest[i] = table[(uintmax_t)src[i]];
 }
 
-void decode_bases(char* dest, uint8_t* src, uintmax_t length) {
+void decode_bases(char* dest, uint8_t* src, uintmax_t length, char *rev_table) {
   for (uintmax_t i=0; i<length; i++)
     dest[i] = rev_table[(uintmax_t)src[i]];
   dest[length] = '\0';

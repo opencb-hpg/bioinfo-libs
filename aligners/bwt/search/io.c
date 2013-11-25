@@ -264,3 +264,61 @@ void save_ref_vector(ref_vector *vector, const char *directory, const char *name
 	fclose(fp);
 
 }
+
+//==============================================================================
+
+void save_config(char *nucleotide, bool duplicate_strand, const char *directory) {
+  size_t err=0;
+  FILE *fp;
+
+  char path[500];
+  path[0]='\0';
+  strcat(path, directory);
+  strcat(path, "/config.txt");
+  //strcat(path, name);
+  //strcat(path, ".txt");
+
+  fp  = fopen(path,  "w");
+  checkFileOpen(fp, path);
+
+  fputs(nucleotide, fp);
+  fputc('\n', fp);
+  fputs((duplicate_strand)?"1":"0", fp);
+  fputc('\n', fp);
+
+  fclose(fp);
+}
+
+//-----------------------------------------------------------------------------
+
+void read_config(char *nucleotide, bool *duplicate_strand, const char *directory) {
+  if (!nucleotide) { return NULL; }
+
+  size_t err=0;
+  FILE *fp;
+  char path[500];
+  char ds_str;
+  //char *tmp = malloc(5 * sizeof(char));
+  //char *tmp;
+
+  path[0]='\0';
+  strcat(path, directory);
+  strcat(path, "/config.txt");
+  //strcat(path, name);
+  //strcat(path, ".txt");
+
+  fp  = fopen(path,  "r");
+  checkFileOpen(fp, path);
+
+  fgets(nucleotide, 128, fp);
+  nucleotide[strlen(nucleotide) - 1] = '\0';
+
+  fgets(&ds_str, 1, fp);
+  *duplicate_strand = atoi(ds_str);
+  
+  fclose(fp);
+
+}
+
+
+//==============================================================================

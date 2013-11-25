@@ -257,7 +257,10 @@ short_cal_t *short_cal_new(const size_t start,
   short_cal->num_seeds = 1;
 
   short_cal->seeds_ids_array = (unsigned char *)calloc(max_seeds, sizeof(unsigned char));
-  if (id >= max_seeds) { LOG_FATAL_F("STORAGE SEED ID OVERFLOW: %i > %i\n", id, max_seeds); }
+
+  if (short_cal->seeds_ids_array == NULL) LOG_FATAL("NO MORE MEMORY\n");
+  if (id >= max_seeds) LOG_FATAL_F("STORAGE SEED ID OVERFLOW: %i > %i\n", id, max_seeds);
+
   short_cal->seeds_ids_array[id] = 1;
 
   short_cal->sr_list = linked_list_new(COLLECTION_MODE_ASYNCHRONIZED);
@@ -596,11 +599,132 @@ void seq_reverse_complementary(char *seq, unsigned int len){
 
 //-----------------------------------------------------------------------------
 
-bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa, bool duplicate_strand) {
+void reverse_strand_C(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1) {
 
-  init_replace_table(NULL);
+  r_C->n  = s_C->n; r_C1->n = s_C1->n;
 
+  r_C->vector  = (SA_TYPE *)malloc(r_C->n  * sizeof(SA_TYPE));
+  check_malloc(r_C->vector,  "reverseStrandC r_C");
+  r_C1->vector = (SA_TYPE *)malloc(r_C1->n * sizeof(SA_TYPE));
+  check_malloc(r_C1->vector, "reverseStrandC r_C1");
+
+  if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
+    r_C->vector[AA] = s_C->vector[TT]; r_C1->vector[AA] = s_C1->vector[TT];
+    r_C->vector[TT] = s_C->vector[AA]; r_C1->vector[TT] = s_C1->vector[AA];
+  } else if (AA != (uint8_t) -1) {
+    r_C->vector[AA] = s_C->vector[AA]; r_C1->vector[AA] = s_C1->vector[AA];
+  } else if (TT != (uint8_t) -1) {
+    r_C->vector[TT] = s_C->vector[TT]; r_C1->vector[TT] = s_C1->vector[TT];
+  }
+
+  if (CC != (uint8_t) -1 && GG != (uint8_t) -1) {
+    r_C->vector[CC] = s_C->vector[GG]; r_C1->vector[CC] = s_C1->vector[GG];
+    r_C->vector[GG] = s_C->vector[CC]; r_C1->vector[GG] = s_C1->vector[CC];
+  } else if (CC != (uint8_t) -1) {
+    r_C->vector[CC] = s_C->vector[CC]; r_C1->vector[CC] = s_C1->vector[CC];
+  } else if (GG != (uint8_t) -1) {
+    r_C->vector[GG] = s_C->vector[GG]; r_C1->vector[GG] = s_C1->vector[GG];
+  }
+
+}
+
+//-----------------------------------------------------------------------------
+
+void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O) {
+
+  r_O->siz = s_O->siz;
+
+  r_O->n_desp = s_O->n_desp;
+  r_O->m_desp = s_O->m_desp;
+
+  r_O->desp = (SA_TYPE **) malloc(r_O->n_desp * sizeof(SA_TYPE *));
+  check_malloc(r_O->desp, "reverse_strand_O");
+
+  if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
+    r_O->desp[AA] = s_O->desp[TT];
+    r_O->desp[TT] = s_O->desp[AA];
+  } else if (AA != (uint8_t) -1) {
+    r_O->desp[AA] = s_O->desp[AA];
+  } else if (TT != (uint8_t) -1) {
+    r_O->desp[TT] = s_O->desp[TT];
+  }
+
+  if (CC != (uint8_t) -1 && GG != (uint8_t) -1) {
+    r_O->desp[CC] = s_O->desp[GG];
+    r_O->desp[GG] = s_O->desp[CC];
+  } else if (CC != (uint8_t) -1) {
+    r_O->desp[CC] = s_O->desp[CC];
+  } else if (GG != (uint8_t) -1) {
+    r_O->desp[GG] = s_O->desp[GG];
+  }
+
+#if defined FM_COMP_32 || FM_COMP_64
+
+  r_O->n_count = s_O->n_count;
+  r_O->m_count = s_O->m_count;
+
+  r_O->count = (FM_COMP_TYPE **) malloc(r_O->n_count * sizeof(FM_COMP_TYPE *));
+  check_malloc(r_O->count, "reverse_strand_O");
+
+  if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
+    r_O->count[AA] = s_O->count[TT];
+    r_O->count[TT] = s_O->count[AA];
+  } else if (AA != (uint8_t) -1) {
+    r_O->count[AA] = s_O->count[AA];
+  } else if (TT != (uint8_t) -1) {
+    r_O->count[TT] = s_O->count[TT];
+  }
+
+if (CC != (uint8_t) -1 && GG != (uint8_t) -1) {
+    r_O->count[CC] = s_O->count[GG];
+    r_O->count[GG] = s_O->count[CC];
+  } else if (CC != (uint8_t) -1) {
+    r_O->count[CC] = s_O->count[CC];
+  } else if (GG != (uint8_t) -1) {
+    r_O->count[GG] = s_O->count[GG];
+  }
+
+#endif
+
+}
+
+void bwt_init_replace_table(bwt_config_t *config) {
+  //printf("****Bases = %s\n", str);
+  
+  if (config->nucleotides == NULL) {
+    LOG_FATAL("Nucleotides NULL");
+  }
+  
+  config->nA = strlen(config->nucleotides);
+  
+  for (int i = 0; i < config->nA; i++) {
+    config->rev_table[i] = toupper(config->nucleotides[i]);
+    
+    table[toupper(config->nucleotides[i])] = i;
+    table[tolower(config->nucleotides[i])] = i;
+
+    if      (toupper(config->nucleotides[i]) == 'A') config->AA = i;
+    else if (toupper(config->nucleotides[i]) == 'C') config->CC = i;
+    else if (toupper(config->nucleotides[i]) == 'G') config->GG = i;
+    else if (toupper(config->nucleotides[i]) == 'T') config->TT = i;
+  }
+
+  config->reverse[config->AA] = config->TT;
+  config->reverse[config->CC] = config->GG;
+  config->reverse[config->GG] = config->CC;
+  config->reverse[config->TT] = config->AA;
+  
+}
+
+//-----------------------------------------------------------------------------
+
+bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa) {
   bwt_index_t *index  = (bwt_index_t*) malloc(sizeof(bwt_index_t));
+
+  read_config(index->nucleotide, &index->duplicate_strand, dirname);
+
+  bwt_init_replace_table(&index->bwt_config);
+
   index->backward     = (bwt_index*) malloc(sizeof(bwt_index));
   index->forward      = (bwt_index*) malloc(sizeof(bwt_index));
   if (!duplicate_strand) {
@@ -609,21 +733,15 @@ bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa, bool duplicate_
   }
 
   index->inverse_sa = inverse_sa;
-  index->duplicate_strand = duplicate_strand;
   index->dirname = strdup(dirname);
 
-  if (duplicate_strand) {
+  if (index->duplicate_strand) {
     load_bwt_index(NULL, index->backward, dirname, 1, inverse_sa);
     load_bwt_index(NULL, index->forward, dirname, 0, inverse_sa);
   } else {
     load_bwt_index(index->backward_rev, index->backward, dirname, 1, inverse_sa);
     load_bwt_index(index->forward_rev, index->forward, dirname, 0, inverse_sa);
   }
-
-  // load karyotype
-  //char path[strlen(dirname) + 512];
-  //  sprintf(path, "%s/index.txt", dirname);
-  //load_exome_file(&index->karyotype, path);
 
   load_exome_file(&index->karyotype, dirname);
 
@@ -657,16 +775,28 @@ void bwt_index_free(bwt_index_t *index) {
 //-----------------------------------------------------------------------------
 
 void bwt_generate_index_files(char *ref_file, char *output_dir, 
-			      unsigned int s_ratio, bool duplicate_strand) {
+			      unsigned int s_ratio, bool duplicate_strand, 
+			      char *bases) {
 
   ref_vector X, Xi, B, Bi;
   vector C, C1;
   comp_matrix O, Oi;
   comp_vector S, R, Si, Ri;
   exome ex;
+  bwt_config_t bwt_config;
+  //ex.chromosome = (char *) calloc(INDEX_EXOME*IDMAX, sizeof(char));
+  //ex.start = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
+  //ex.end = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
+  //ex.offset = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
+  
+  //initReplaceTable_bs(NULL);
+  save_config(bases, duplice_strand, output_dir);
 
-  init_replace_table(NULL);
+  stcpy(bwt_config.nucleotides, bases);
+  bwt_init_replace_table(&bwt_config);
 
+
+  // Calculating BWT
   encode_reference(&X, &ex, duplicate_strand, ref_file);
   save_ref_vector(&X, output_dir, "X");
   save_exome_file(&ex, duplicate_strand, output_dir);
@@ -725,8 +855,6 @@ void bwt_generate_index_files(char *ref_file, char *output_dir,
 
   free(C.vector);
   free(C1.vector);
-
-  //TODO: Guardar en un fichero las propiedades del indice: los nucleótidos, la tabla de conversión, el duplicate_strand y el inverse_sa
 
 }
 
@@ -818,7 +946,9 @@ size_t bwt_map_exact_seq(char *seq,
   unsigned int start_mapping;
   //char *chromosome = (char *)malloc(sizeof(char)*10);
   seq_strand = strdup(seq);
-  encode_bases(code_seq, seq, len);
+
+  encode_bases(code_seq, seq, len, index->bwt_config.table);
+  //replaceBases(seq, code_seq, len);
   struct timeval t_start, t_end;
   char *optional_fields /*= (char *)malloc(sizeof(char)*256)*/;
   //printf("---> EXACT Search Read (%d): %s\n", len, seq);
@@ -1775,7 +1905,7 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
      size_t len_calc = len;
 
      uint8_t *code_seq = (uint8_t *) malloc(len * sizeof(uint8_t));
-     encode_bases(code_seq, seq, len);
+     encode_bases(code_seq, seq, len, index->bwt_config.table);
 
      // calculate vectors k and l
      intmax_t *k0 = (intmax_t *) malloc(len * sizeof(intmax_t));
@@ -2760,7 +2890,8 @@ size_t bwt_map_inexact_seeds_seq(char *seq, size_t seed_size, size_t min_seed_si
   int seq_id = 0;
   //char aux_seq[50];
 
-  encode_bases(code_seq, seq, len);
+
+  encode_bases(code_seq, seq, len, index->bwt_config.table);
 
   // first 'pasada'
   offset = 0;
@@ -2811,7 +2942,7 @@ size_t bwt_map_inexact_seeds_by_region(int start_position, int end_position,
   int seq_id = 1;
   char aux_seq[50];
 
-  encode_bases(code_seq, seq, len);
+  encode_bases(code_seq, seq, len, index->bwt_config.table);
 
   int padding_regions = 0;
   int num_regions;
@@ -3033,7 +3164,8 @@ size_t bwt_map_seeds_IA(int padding_left,
   uint8_t *code_seq = (uint8_t *) malloc(len * sizeof(uint8_t));
   int num_regions_start, num_regions_end;
 
-  encode_bases(code_seq, seq, len);
+
+  encode_bases(code_seq, seq, len, index->bwt_config.table);
 
   //First Exact seed Start read and End
   num_regions_start = bwt_map_exact_seed(code_seq, len, 0, 20 - 1,
@@ -3074,8 +3206,7 @@ size_t bwt_map_exact_seeds_seq(int padding_left, int padding_right,
   //printf(" len=%i, seed_size=%i, num_seeds=%i\n", len, seed_size, num_seeds);
   uint8_t *code_seq = (uint8_t *) malloc(len * sizeof(uint8_t));
 
-  encode_bases(code_seq, seq, len);
-  
+  encode_bases(code_seq, seq, len, index->bwt_config.table);  
 
   //Second first seed
   padding_left = seed_size / 2;
@@ -3154,7 +3285,8 @@ size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg,
   //printf(" len=%i, seed_size=%i, num_seeds=%i, seq=%s\n", len, seed_size, num_seeds, seq);
   uint8_t *code_seq = (uint8_t *) malloc(len * sizeof(uint8_t));
 
-  encode_bases(code_seq, seq, len);
+
+  encode_bases(code_seq, seq, len, index->bwt_config.table);
 
   //Second first seed
   if (seed_size <= 10) { seed_size = 16; }
@@ -3327,8 +3459,9 @@ size_t bwt_map_exact_seeds_by_region(int start_position, int end_position,
   int extra_seed_offset = seed_size / 2;
   int extra_seed_size = 16;
 
+
   uint8_t *code_seq = (uint8_t *) malloc((strlen(seq) + 1) * sizeof(uint8_t));
-  encode_bases(code_seq, seq, strlen(seq));
+  encode_bases(code_seq, seq, strlen(seq), index->bwt_config.table);
   /*
   printf("len = %i\n",len);
 
@@ -3394,8 +3527,9 @@ size_t bwt_generate_cals_between_coords(int strand_target, int chromosome_target
   int extra_seed_offset = seed_size / 2;
   int extra_seed_size = 16;
 
+
   uint8_t *code_seq = (uint8_t *) malloc(len * sizeof(uint8_t));
-  encode_bases(code_seq, seq, len);
+  encode_bases(code_seq, seq, len, index->bwt_config.table);
 
   num_seeds = len / seed_size;
 

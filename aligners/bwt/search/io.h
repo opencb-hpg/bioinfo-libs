@@ -32,6 +32,9 @@ typedef struct {
 void load_exome_file(exome *ex, const char *directory);
 void save_exome_file(exome *ex, bool reverse, const char *directory);
 
+void save_config(char *nucleotide, bool duplicate_strand, const char *directory);
+void read_config(char *nucleotide, bool *duplicate_strand, const char *directory);
+
 void encode_reference(ref_vector *X, exome *ex, bool reverse, const char *ref_path);
 bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t *nquery);
 
