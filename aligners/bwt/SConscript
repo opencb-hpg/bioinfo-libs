@@ -21,4 +21,4 @@ for dir in formats:
 
 
 aligners_env['CFLAGS'] += " -DFM_COMP_64 "
-aligners_env['objects'] += aligners_env.Object(Split('genome.c bwt.c'))
+aligners_env['objects'] += aligners_env.Object(Split('genome.c bwt.c bwt_bs.c'))

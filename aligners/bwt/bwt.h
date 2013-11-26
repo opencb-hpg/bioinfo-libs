@@ -212,20 +212,8 @@ void bwt_optarg_free(bwt_optarg_t *optarg);
 
 //-----------------------------------------------------------------------------
 
-typedef struct bwt_config {
-  uint8_t nA;
-  uint8_t AA, CC, GG, TT;
-
-  uint8_t table[128];
-  char rev_table[4];
-  char reverse[4];
-  char nucleotides[64];
-} bwt_config_t;
-
-
 typedef struct {
-  bool inverse_sa;
-  bool duplicate_strand;
+
   exome karyotype;
   bwt_config_t bwt_config;
   bwt_index *backward;
@@ -235,18 +223,16 @@ typedef struct {
   char *dirname;
 } bwt_index_t;
 
-bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa, bool duplicate_strand);
+bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa);
 
 void bwt_index_free(bwt_index_t *index);
 
-void bwt_generate_index_files(char *ref_file, char *output_dir, unsigned int s_ratio, bool duplicate_strand);
+void bwt_generate_index_files(char *ref_file, char *output_dir, 
+			      unsigned int s_ratio, bool duplicate_strand,
+			      char *bases);
 
-void bwt_generate_index_files_bs(char *ref_file, char *output_dir, 
-				 unsigned int s_ratio, char *bases);
-
-void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O);
-
-void reverse_strand_C(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1);
+//void bwt_generate_index_files_bs(char *ref_file, char *output_dir, 
+//				 unsigned int s_ratio, char *bases);
 
 //-----------------------------------------------------------------------------
 
@@ -512,11 +498,14 @@ size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
 */
 
 //-----------------------------------------------------------------------------
-void initReplaceTable_bs(const char *str);
+void bwt_cigar_cpy(alignment_t *mapping, char *quality);
+
+/*void initReplaceTable_bs(const char *str);
 
 char * readNucleotide(const char *directory, const char *name);
 
 void saveNucleotide(char *nucleotide, const char *directory, const char *name);
+*/
 //-----------------------------------------------------------------------------
 
 #endif // BWT_H

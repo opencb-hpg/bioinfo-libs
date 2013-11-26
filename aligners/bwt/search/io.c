@@ -21,183 +21,185 @@ void load_exome_file(exome *ex, const char *directory) {
 
     if (line[0]=='>') {
 
-			int j;
-			char c = 0;
+      int j;
+      char c = 0;
 
-			for(j=0; j<IDMAX-1; j++) {
-				c = line[j+1];
-				if (c==' ') break;
-				ex->chromosome[ex->size*IDMAX+j] = c;
-			}
+      for(j=0; j<IDMAX-1; j++) {
+	c = line[j+1];
+	if (c==' ') break;
+	ex->chromosome[ex->size*IDMAX+j] = c;
+      }
 
-			ex->chromosome[ex->size*IDMAX+j] = '\0';
+      ex->chromosome[ex->size*IDMAX+j] = '\0';
 
-			sscanf(line + j + 2, "%ju %ju %*s", &ex->start[ex->size], &ex->end[ex->size]);
-			ex->size++;
-			ex->offset[ex->size] = ex->offset[ex->size-1] + (ex->end[ex->size-1] - ex->start[ex->size-1]+1);
+      sscanf(line + j + 2, "%ju %ju %*s", &ex->start[ex->size], &ex->end[ex->size]);
+      ex->size++;
+      ex->offset[ex->size] = ex->offset[ex->size-1] + (ex->end[ex->size-1] - ex->start[ex->size-1]+1);
 
-		}
+    }
 
-	}
+  }
 
-	fclose(fp);
+  fclose(fp);
 
 }
 
 void save_exome_file(exome *ex, bool reverse, const char *directory) {
 
-	FILE *fp;
+  FILE *fp;
 
-	char path[500];
+  char path[500];
   path[0]='\0';
   strcat(path, directory);
   strcat(path, "/index");
 
-	fp  = fopen(path, "w");
+  fp  = fopen(path, "w");
   check_file_open(fp, path);
 
-	for(uintmax_t i=0; i<ex->size; i++) {
+  for(uintmax_t i=0; i<ex->size; i++) {
     fprintf(fp, ">%s %ju %ju\n", ex->chromosome + i*IDMAX, (uintmax_t) ex->start[i], (uintmax_t) ex->end[i]);
   }
 
-	if(reverse) {
-		for(int i=ex->size-1; i>=0; i--) {
-    	fprintf(fp, ">%s %ju %ju\n", ex->chromosome + i*IDMAX, (uintmax_t) ex->start[i], (uintmax_t) ex->end[i]);
-  	}
-	}
+  if(reverse) {
+    for(int i=ex->size-1; i>=0; i--) {
+      fprintf(fp, ">%s %ju %ju\n", ex->chromosome + i*IDMAX, (uintmax_t) ex->start[i], (uintmax_t) ex->end[i]);
+    }
+  }
 
 }
 
-void encode_reference(ref_vector *X, exome *ex, bool reverse, const char *ref_path) {
+void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config_t bwt_config) {
 
-	FILE *ref_file;
-	ref_file = fopen(ref_path, "r");
-	check_file_open(ref_file, ref_path);
+  printf("nA: %ju, %ju %ju %ju %ju, %ju %ju %ju %ju, %ju %ju %ju %ju, %c %c %c %c, %ju %ju %ju %ju\n", bwt_config.nA, bwt_config.AA, bwt_config.CC, bwt_config.GG, bwt_config.TT, bwt_config.table['a'], bwt_config.table['c'], bwt_config.table['g'], bwt_config.table['t'], bwt_config.table['A'], bwt_config.table['C'], bwt_config.table['G'], bwt_config.table['T'], bwt_config.rev_table[0], bwt_config.rev_table[1], bwt_config.rev_table[2], bwt_config.rev_table[3], bwt_config.reverse[0], bwt_config.reverse[1], bwt_config.reverse[2], bwt_config.reverse[3]);
 
-	size_t read, size;
+  FILE *ref_file;
+  ref_file = fopen(ref_path, "r");
+  check_file_open(ref_file, ref_path);
 
-	fseek(ref_file, 0, SEEK_END);
-	read = ftell(ref_file); //Valgrind errors on dbwt
-	fseek(ref_file, 0, SEEK_SET);
+  size_t read, size;
 
-	if (reverse) size = read*2 + 1;
-	else         size = read   + 1;
+  fseek(ref_file, 0, SEEK_END);
+  read = ftell(ref_file); //Valgrind errors on dbwt
+  fseek(ref_file, 0, SEEK_SET);
 
-	X->vector = (uint8_t *) malloc( size * sizeof(uint8_t) );
-	check_malloc(X->vector, ref_path);
+  if (bwt_config.duplicate_strand) size = read*2 + 1;
+  else         size = read   + 1;
 
-	char *reference = (char *) X->vector;
+  X->vector = (uint8_t *) malloc( size * sizeof(uint8_t) );
+  check_malloc(X->vector, ref_path);
 
-	if (ex !=NULL) ex->size=0;
+  char *reference = (char *) X->vector;
 
-	uintmax_t partial_length=0, total_length=0;
+  if (ex !=NULL) ex->size=0;
 
-	while ( fgets(reference + total_length, MAXLINE, ref_file) ) {
+  uintmax_t partial_length=0, total_length=0;
 
-		if ( (reference + total_length)[0] == '>') {
+  while ( fgets(reference + total_length, MAXLINE, ref_file) ) {
 
-			if (ex!=NULL) {
+    if ( (reference + total_length)[0] == '>') {
 
-				if (total_length == 0) {
+      if (ex!=NULL) {
 
-					sscanf(reference + total_length, ">%s ", ex->chromosome + ex->size * IDMAX);
-					ex->start[ex->size] = 0;
+	if (total_length == 0) {
 
-				} else {
+	  sscanf(reference + total_length, ">%s ", ex->chromosome + ex->size * IDMAX);
+	  ex->start[ex->size] = 0;
 
-					ex->end[ex->size] = partial_length - 1;
-					partial_length=0;
-
-					if (ex->size==0)
-						ex->offset[0] = 0;
-					else
-						ex->offset[ex->size] = ex->offset[ex->size-1] + (ex->end[ex->size-1] - ex->start[ex->size-1] + 1);
-					ex->size++;
-
-					sscanf(reference + total_length, ">%s ", ex->chromosome + ex->size * IDMAX);
-					ex->start[ex->size] = 0;
-
-				}
-
-			}
-
-			continue;
-
-		}
-
-		size_t length = strlen(reference + total_length);
-		if ((reference + total_length)[length-1]=='\n')
-			length--;
-
-		partial_length += length;
-		total_length += length;
-
-	}
-
-	if (ex != NULL) {
-		ex->end[ex->size] = partial_length - 1;
-		partial_length=0;
-
-		if (ex->size==0)
-			ex->offset[0] = 0;
-		else
-			ex->offset[ex->size] = ex->offset[ex->size-1] + (ex->end[ex->size-1] - ex->start[ex->size-1] + 1);
-		ex->size++;
-	}
-
-	encode_bases(X->vector, reference, total_length);
-
-	if (reverse) {
-		duplicate_reverse(X->vector, total_length);
-		X->n = total_length * 2;
 	} else {
-		X->n = total_length;
+
+	  ex->end[ex->size] = partial_length - 1;
+	  partial_length=0;
+
+	  if (ex->size==0)
+	    ex->offset[0] = 0;
+	  else
+	    ex->offset[ex->size] = ex->offset[ex->size-1] + (ex->end[ex->size-1] - ex->start[ex->size-1] + 1);
+	  ex->size++;
+
+	  sscanf(reference + total_length, ">%s ", ex->chromosome + ex->size * IDMAX);
+	  ex->start[ex->size] = 0;
+
 	}
 
-	X->dollar = 0;
-	X->vector[X->n] = 0; //Valgrind errors on dbwt
+      }
 
-	fclose(ref_file);
+      continue;
+
+    }
+
+    size_t length = strlen(reference + total_length);
+    if ((reference + total_length)[length-1]=='\n')
+      length--;
+
+    partial_length += length;
+    total_length += length;
+
+  }
+
+  if (ex != NULL) {
+    ex->end[ex->size] = partial_length - 1;
+    partial_length=0;
+
+    if (ex->size==0)
+      ex->offset[0] = 0;
+    else
+      ex->offset[ex->size] = ex->offset[ex->size-1] + (ex->end[ex->size-1] - ex->start[ex->size-1] + 1);
+    ex->size++;
+  }
+
+  encode_bases(X->vector, reference, total_length, bwt_config.table);
+
+  if (bwt_config.duplicate_strand) {
+    duplicate_reverse(X->vector, total_length, bwt_config.reverse);
+    X->n = total_length * 2;
+  } else {
+    X->n = total_length;
+  }
+
+  X->dollar = 0;
+  X->vector[X->n] = 0; //Valgrind errors on dbwt
+
+  fclose(ref_file);
 
 }
 
-bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t *nquery) {
+bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t *nquery, bwt_config_t bwt_config) {
 
-	char line[MAXLINE];
-	size_t length=0;
+  char line[MAXLINE];
+  size_t length=0;
 
-	*nquery=0;
-	uncoded[0]='\0';
+  *nquery=0;
+  uncoded[0]='\0';
 
-	while ( fgets(line, MAXLINE, queries_file) ) {
+  while ( fgets(line, MAXLINE, queries_file) ) {
 
-		if (line[0] == '>') {
-			if (*nquery) break;
-			else continue;
-		}
+    if (line[0] == '>') {
+      if (*nquery) break;
+      else continue;
+    }
 
-		length=strlen(line);
-		if (line[length-1]=='\n')
-			length--;
+    length=strlen(line);
+    if (line[length-1]=='\n')
+      length--;
 
-		uncoded[*nquery] = '\0';
-		strncpy(uncoded + *nquery, line , length);
+    uncoded[*nquery] = '\0';
+    strncpy(uncoded + *nquery, line , length);
 
-		*nquery += length;
+    *nquery += length;
 
-	}
+  }
 
-	if (*nquery) {
+  if (*nquery) {
 
-		encode_bases(coded, uncoded, *nquery);
+    encode_bases(coded, uncoded, *nquery, bwt_config.table);
 
-		return true;
+    return true;
 
-	} else {
+  } else {
 
-		return false;
+    return false;
 
-	}
+  }
 
 }
 
@@ -223,16 +225,16 @@ void read_ref_vector(ref_vector *vector, const char *directory, const char *name
   err = fread(&vector->dollar, sizeof(uint64_t),  1, fp);
   check_file_read(err, 1, path);
 
-	check_file_read(err, 1, path);
+  check_file_read(err, 1, path);
   vector->vector = (uint8_t *) malloc((vector->n + 1) * sizeof(uint8_t)); //Valgrind errors on dbwt
   check_malloc(vector->vector, path);
 
-	err = fread(vector->vector, sizeof(uint8_t), vector->n, fp);
+  err = fread(vector->vector, sizeof(uint8_t), vector->n, fp);
   check_file_read(err, vector->n, path);
 
-	vector->vector[vector->n] = 0; //Valgrind errors on dbwt
+  vector->vector[vector->n] = 0; //Valgrind errors on dbwt
 
-	fclose(fp);
+  fclose(fp);
 
 }
 
@@ -258,16 +260,16 @@ void save_ref_vector(ref_vector *vector, const char *directory, const char *name
   err = fwrite(&vector->dollar, sizeof(uint64_t), 1, fp);
   check_file_write(err, 1, path);
 
-	err = fwrite(vector->vector, sizeof(uint8_t), vector->n, fp);
+  err = fwrite(vector->vector, sizeof(uint8_t), vector->n, fp);
   check_file_write(err, vector->n, path);
 
-	fclose(fp);
+  fclose(fp);
 
 }
 
 //==============================================================================
 
-void save_config(char *nucleotide, bool duplicate_strand, const char *directory) {
+void save_config(char *nucleotides, bool duplicate_strand, const char *directory) {
   size_t err=0;
   FILE *fp;
 
@@ -275,13 +277,11 @@ void save_config(char *nucleotide, bool duplicate_strand, const char *directory)
   path[0]='\0';
   strcat(path, directory);
   strcat(path, "/config.txt");
-  //strcat(path, name);
-  //strcat(path, ".txt");
 
   fp  = fopen(path,  "w");
-  checkFileOpen(fp, path);
+  check_file_open(fp, path);
 
-  fputs(nucleotide, fp);
+  fputs(nucleotides, fp);
   fputc('\n', fp);
   fputs((duplicate_strand)?"1":"0", fp);
   fputc('\n', fp);
@@ -291,31 +291,31 @@ void save_config(char *nucleotide, bool duplicate_strand, const char *directory)
 
 //-----------------------------------------------------------------------------
 
-void read_config(char *nucleotide, bool *duplicate_strand, const char *directory) {
-  if (!nucleotide) { return NULL; }
+void read_config(char *nucleotides, bool *duplicate_strand, const char *directory) {
+
+  if (nucleotides == NULL) {
+    fprintf(stderr, "%s -> Nucleotides NULL\n", __func__);
+    exit(EXIT_FAILURE);
+  }
 
   size_t err=0;
   FILE *fp;
   char path[500];
-  char ds_str;
-  //char *tmp = malloc(5 * sizeof(char));
-  //char *tmp;
+  char ds_str[32];
 
   path[0]='\0';
   strcat(path, directory);
   strcat(path, "/config.txt");
-  //strcat(path, name);
-  //strcat(path, ".txt");
 
   fp  = fopen(path,  "r");
-  checkFileOpen(fp, path);
+  check_file_open(fp, path);
 
-  fgets(nucleotide, 128, fp);
-  nucleotide[strlen(nucleotide) - 1] = '\0';
+  fgets(nucleotides, 128, fp);
+  nucleotides[strlen(nucleotides) - 1] = '\0';
 
-  fgets(&ds_str, 1, fp);
+  fgets(ds_str, 1, fp);
   *duplicate_strand = atoi(ds_str);
-  
+
   fclose(fp);
 
 }

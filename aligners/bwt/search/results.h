@@ -102,7 +102,7 @@ typedef struct {
 		}\
 	} while(0);
 
-inline void concat_error_string(char *mask, char *mask_aux, result *r, uint8_t rr, uintmax_t *enW) {
+inline void concat_error_string(char *mask, char *mask_aux, result *r, uint8_t rr, uintmax_t *enW, bwt_config_t *bwt_config) {
 
 	if      (r->err_kind[rr]==DELETION)
 		(*enW)--;
@@ -113,16 +113,16 @@ inline void concat_error_string(char *mask, char *mask_aux, result *r, uint8_t r
 		sprintf(mask_aux, "_%d%c",   r->err_pos[rr], 'd');
 		strcat(mask, mask_aux);
 	} else if (r->err_kind[rr]==MISMATCH) {
-		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'm', rev_table[r->err_base[rr]]);
+		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'm', bwt_config->rev_table[r->err_base[rr]]);
 		strcat(mask, mask_aux);
 	} else {
-		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'i', rev_table[r->err_base[rr]]);
+		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'i', bwt_config->rev_table[r->err_base[rr]]);
 		strcat(mask, mask_aux);
 	}
 
 }
 
-inline void manage_single_result(result *r, exome* ex, bwt_index *backward, bwt_index *forward, char *search, unsigned int type, FILE *fp, uintmax_t read_index, bool *found) {
+inline void manage_single_result(result *r, exome* ex, bwt_index *backward, bwt_index *forward, char *search, unsigned int type, FILE *fp, uintmax_t read_index, bool *found, bwt_config_t *bwt_config) {
 
 	bool direction;
 	uintmax_t enW;
@@ -148,7 +148,7 @@ inline void manage_single_result(result *r, exome* ex, bwt_index *backward, bwt_
 	mask[0] = '\0';
 
 	for (int rr=0; rr<r->num_mismatches; rr++) {
-		concat_error_string(mask, mask_aux, r, rr, &enW);
+	  concat_error_string(mask, mask_aux, r, rr, &enW, bwt_config);
 	}
 
 	//printf("%d %d %d %u %u\n", r->start, r->pos, r->end, r->k, r->l);
@@ -190,6 +190,6 @@ inline void manage_single_result(result *r, exome* ex, bwt_index *backward, bwt_
 
 }
 
-bool write_results(results_list *r_list, intmax_t *k, intmax_t *l, exome* ex, bwt_index *backward, bwt_index *forward, char *mapping, uintmax_t nW, int type, FILE *fp);
+bool write_results(results_list *r_list, intmax_t *k, intmax_t *l, exome* ex, bwt_index *backward, bwt_index *forward, char *mapping, uintmax_t nW, int type, FILE *fp, bwt_config_t *bwt_config);
 
 #endif

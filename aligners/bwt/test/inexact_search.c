@@ -14,8 +14,6 @@ char *read_Worig, *gpu_Worig, *store_Worig, *swap_Worig;
 uint8_t *read_We, *gpu_We, *store_We, *swap_We;
 uint64_t *read_nWe, *gpu_nWe, *store_nWe, *swap_nWe;
 
-bwt_index backward, forward, backward_rev, forward_rev;
-
 results_list rl_prev, rl_next, rl_prev_i, rl_next_i;
 
 results_list rl_final[MAX_READ_THREAD], rl_final2[MAX_READ_THREAD];
@@ -38,6 +36,8 @@ uintmax_t tam_read_gpu=0, tam_read_gpu2=0;
 
 FILE *output_file;
 
+bwt_index backward, forward, backward_rev, forward_rev;
+bwt_config_t bwt_config;
 exome ex;
 
 int num_errors, fragsize, RESULTS, duplicate_reference;
@@ -123,7 +123,7 @@ void *writeResults(void *threadid) {
 			if (duplicate_reference) {
 
 				if (store_rl_final[i].num_results) {
-					write_results(store_rl_final + i, k, l, &ex, &backward, &forward, store_Worig + i*MAXLINE, store_nWe[i], 2, output_file);
+					write_results(store_rl_final + i, k, l, &ex, &backward, &forward, store_Worig + i*MAXLINE, store_nWe[i], 2, output_file, &bwt_config);
 					found = true;
 				}
 
@@ -135,12 +135,12 @@ void *writeResults(void *threadid) {
 			} else {
 
 				if (store_rl_final[i].num_results) {
-					write_results(store_rl_final + i, k, l, &ex, &backward, &forward, store_Worig + i*MAXLINE, store_nWe[i], 1, output_file);
+					write_results(store_rl_final + i, k, l, &ex, &backward, &forward, store_Worig + i*MAXLINE, store_nWe[i], 1, output_file, &bwt_config);
 					found = true;
 				}
 
 				if (store_rl_final_r[i].num_results) {
-					write_results(store_rl_final_r + i, k, l, &ex, &backward, &forward, store_Worig + i*MAXLINE, store_nWe[i], 0, output_file);
+					write_results(store_rl_final_r + i, k, l, &ex, &backward, &forward, store_Worig + i*MAXLINE, store_nWe[i], 0, output_file, &bwt_config);
 					found2 = true;
 				}
 
@@ -273,7 +273,8 @@ void *cpuSearch(void *threadid) {
 							&rl_next_i,
 							gpu_rl_final + i,
 							aux_fragsize,
-							2
+							2,
+							bwt_config.nA
 							);
 
 				} else {
@@ -289,7 +290,8 @@ void *cpuSearch(void *threadid) {
 							&rl_next_i,
 							gpu_rl_final + i,
 							aux_fragsize,
-							1
+							1,
+							bwt_config.nA
 							);
 
 					BWSearchCPU(
@@ -303,7 +305,8 @@ void *cpuSearch(void *threadid) {
 							&rl_next_i,
 							gpu_rl_final_r + i,
 							aux_fragsize,
-							0
+							0,
+							bwt_config.nA
 							);
 
 				}
@@ -348,20 +351,21 @@ int main(int argc, char **argv) {
 
 	FILE *queries_file;
 
-	check_syntax(argc, 9, "inexact_search f_mappings d_transform f_output duplicate_reference search_tree_size num_errors min_fragment nucleotides");
+	check_syntax(argc, 7, "inexact_search f_mappings d_transform f_output search_tree_size num_errors min_fragment");
 
-	duplicate_reference = atoi(argv[4]);
-	RESULTS = atoi(argv[5]);
-	num_errors = atoi(argv[6]);
-	fragsize = atoi(argv[7]);
-	init_replace_table(argv[8]);
+	read_config(bwt_config.nucleotides, &(bwt_config.duplicate_strand), argv[2]);
+	bwt_init_replace_table(bwt_config);
 
-	if (duplicate_reference) {
-	  load_bwt_index(NULL, &backward, argv[2], 1, true);
-	  load_bwt_index(NULL, &forward, argv[2], 0, true);
+	RESULTS = atoi(argv[4]);
+	num_errors = atoi(argv[5]);
+	fragsize = atoi(argv[6]);
+
+	if (bwt_config.duplicate_strand) {
+	  load_bwt_index(NULL, &backward, argv[2], 1, true, bwt_config);
+	  load_bwt_index(NULL, &forward, argv[2], 0, true, bwt_config);
 	} else {
-	  load_bwt_index(&backward_rev, &backward, argv[2], 1, true);
-	  load_bwt_index(&forward_rev, &forward, argv[2], 0, true);
+	  load_bwt_index(&backward_rev, &backward, argv[2], 1, true, bwt_config);
+	  load_bwt_index(&forward_rev, &forward, argv[2], 0, true, bwt_config);
 	}
 	
 	h_Worig  = (char*) malloc(MAX_READ_THREAD * MAXLINE * sizeof(char));
@@ -447,7 +451,7 @@ int main(int argc, char **argv) {
 
 		while (exit) {
 
-			exit = nextFASTAToken(queries_file, read_Worig + tam_read_gpu * MAXLINE, read_We + tam_read_gpu * MAXLINE, read_nWe + tam_read_gpu);
+			exit = nextFASTAToken(queries_file, read_Worig + tam_read_gpu * MAXLINE, read_We + tam_read_gpu * MAXLINE, read_nWe + tam_read_gpu, bwt_config);
 
 			tam_read_gpu++;
 

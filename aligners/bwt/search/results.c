@@ -1,6 +1,6 @@
 #include "results.h"
 
-bool write_results(results_list *r_list, intmax_t *k, intmax_t *l, exome* ex, bwt_index *backward, bwt_index *forward, char *mapping, uintmax_t nW, int type, FILE *fp) {
+bool write_results(results_list *r_list, intmax_t *k, intmax_t *l, exome* ex, bwt_index *backward, bwt_index *forward, char *mapping, uintmax_t nW, int type, FILE *fp, bwt_config_t *bwt_config) {
 
 	result *r;
 
@@ -33,7 +33,7 @@ bool write_results(results_list *r_list, intmax_t *k, intmax_t *l, exome* ex, bw
 			k[kl] = r->k;
 			l[kl] = r->l;
 			kl_count++;
-			manage_single_result(r, ex, backward, forward, search, type, fp, r_list->read_index, &found);
+			manage_single_result(r, ex, backward, forward, search, type, fp, r_list->read_index, &found, bwt_config);
 		}
 
 	}

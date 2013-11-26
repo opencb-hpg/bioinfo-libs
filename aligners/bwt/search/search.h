@@ -189,13 +189,13 @@ inline void change_direction(bwt_index *backward, bwt_index *forward, result *re
 
 }
 
-bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, int16_t fragsize, bool type);
+bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, int16_t fragsize, bool type, uint8_t nA);
 
 int16_t BWExactSearchVectorBackward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index);
 int16_t BWExactSearchVectorForward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index);
 
-bool BWSearch1GPUHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec_k, intmax_t *vec_l, intmax_t *vec_ki, intmax_t *vec_li, bwt_index *backward, bwt_index *forward, results_list *r_list);
+bool BWSearch1VectorHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec_k, intmax_t *vec_l, intmax_t *vec_ki, intmax_t *vec_li, bwt_index *backward, bwt_index *forward, results_list *r_list, uint8_t nA);
 
-bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list);
+bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list, uint8_t nA);
 
 #endif

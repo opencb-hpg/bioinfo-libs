@@ -599,148 +599,28 @@ void seq_reverse_complementary(char *seq, unsigned int len){
 
 //-----------------------------------------------------------------------------
 
-void reverse_strand_C(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1) {
-
-  r_C->n  = s_C->n; r_C1->n = s_C1->n;
-
-  r_C->vector  = (SA_TYPE *)malloc(r_C->n  * sizeof(SA_TYPE));
-  check_malloc(r_C->vector,  "reverseStrandC r_C");
-  r_C1->vector = (SA_TYPE *)malloc(r_C1->n * sizeof(SA_TYPE));
-  check_malloc(r_C1->vector, "reverseStrandC r_C1");
-
-  if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
-    r_C->vector[AA] = s_C->vector[TT]; r_C1->vector[AA] = s_C1->vector[TT];
-    r_C->vector[TT] = s_C->vector[AA]; r_C1->vector[TT] = s_C1->vector[AA];
-  } else if (AA != (uint8_t) -1) {
-    r_C->vector[AA] = s_C->vector[AA]; r_C1->vector[AA] = s_C1->vector[AA];
-  } else if (TT != (uint8_t) -1) {
-    r_C->vector[TT] = s_C->vector[TT]; r_C1->vector[TT] = s_C1->vector[TT];
-  }
-
-  if (CC != (uint8_t) -1 && GG != (uint8_t) -1) {
-    r_C->vector[CC] = s_C->vector[GG]; r_C1->vector[CC] = s_C1->vector[GG];
-    r_C->vector[GG] = s_C->vector[CC]; r_C1->vector[GG] = s_C1->vector[CC];
-  } else if (CC != (uint8_t) -1) {
-    r_C->vector[CC] = s_C->vector[CC]; r_C1->vector[CC] = s_C1->vector[CC];
-  } else if (GG != (uint8_t) -1) {
-    r_C->vector[GG] = s_C->vector[GG]; r_C1->vector[GG] = s_C1->vector[GG];
-  }
-
-}
-
-//-----------------------------------------------------------------------------
-
-void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O) {
-
-  r_O->siz = s_O->siz;
-
-  r_O->n_desp = s_O->n_desp;
-  r_O->m_desp = s_O->m_desp;
-
-  r_O->desp = (SA_TYPE **) malloc(r_O->n_desp * sizeof(SA_TYPE *));
-  check_malloc(r_O->desp, "reverse_strand_O");
-
-  if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
-    r_O->desp[AA] = s_O->desp[TT];
-    r_O->desp[TT] = s_O->desp[AA];
-  } else if (AA != (uint8_t) -1) {
-    r_O->desp[AA] = s_O->desp[AA];
-  } else if (TT != (uint8_t) -1) {
-    r_O->desp[TT] = s_O->desp[TT];
-  }
-
-  if (CC != (uint8_t) -1 && GG != (uint8_t) -1) {
-    r_O->desp[CC] = s_O->desp[GG];
-    r_O->desp[GG] = s_O->desp[CC];
-  } else if (CC != (uint8_t) -1) {
-    r_O->desp[CC] = s_O->desp[CC];
-  } else if (GG != (uint8_t) -1) {
-    r_O->desp[GG] = s_O->desp[GG];
-  }
-
-#if defined FM_COMP_32 || FM_COMP_64
-
-  r_O->n_count = s_O->n_count;
-  r_O->m_count = s_O->m_count;
-
-  r_O->count = (FM_COMP_TYPE **) malloc(r_O->n_count * sizeof(FM_COMP_TYPE *));
-  check_malloc(r_O->count, "reverse_strand_O");
-
-  if (AA != (uint8_t) -1 && TT != (uint8_t) -1) {
-    r_O->count[AA] = s_O->count[TT];
-    r_O->count[TT] = s_O->count[AA];
-  } else if (AA != (uint8_t) -1) {
-    r_O->count[AA] = s_O->count[AA];
-  } else if (TT != (uint8_t) -1) {
-    r_O->count[TT] = s_O->count[TT];
-  }
-
-if (CC != (uint8_t) -1 && GG != (uint8_t) -1) {
-    r_O->count[CC] = s_O->count[GG];
-    r_O->count[GG] = s_O->count[CC];
-  } else if (CC != (uint8_t) -1) {
-    r_O->count[CC] = s_O->count[CC];
-  } else if (GG != (uint8_t) -1) {
-    r_O->count[GG] = s_O->count[GG];
-  }
-
-#endif
-
-}
-
-void bwt_init_replace_table(bwt_config_t *config) {
-  //printf("****Bases = %s\n", str);
-  
-  if (config->nucleotides == NULL) {
-    LOG_FATAL("Nucleotides NULL");
-  }
-  
-  config->nA = strlen(config->nucleotides);
-  
-  for (int i = 0; i < config->nA; i++) {
-    config->rev_table[i] = toupper(config->nucleotides[i]);
-    
-    table[toupper(config->nucleotides[i])] = i;
-    table[tolower(config->nucleotides[i])] = i;
-
-    if      (toupper(config->nucleotides[i]) == 'A') config->AA = i;
-    else if (toupper(config->nucleotides[i]) == 'C') config->CC = i;
-    else if (toupper(config->nucleotides[i]) == 'G') config->GG = i;
-    else if (toupper(config->nucleotides[i]) == 'T') config->TT = i;
-  }
-
-  config->reverse[config->AA] = config->TT;
-  config->reverse[config->CC] = config->GG;
-  config->reverse[config->GG] = config->CC;
-  config->reverse[config->TT] = config->AA;
-  
-}
-
-//-----------------------------------------------------------------------------
-
 bwt_index_t *bwt_index_new(const char *dirname, bool inverse_sa) {
   bwt_index_t *index  = (bwt_index_t*) malloc(sizeof(bwt_index_t));
 
-  read_config(index->nucleotide, &index->duplicate_strand, dirname);
-
-  bwt_init_replace_table(&index->bwt_config);
+  read_config(index->bwt_config.nucleotides, &(index->bwt_config.duplicate_strand), dirname);
+  bwt_init_replace_table(index->bwt_config);
 
   index->backward     = (bwt_index*) malloc(sizeof(bwt_index));
   index->forward      = (bwt_index*) malloc(sizeof(bwt_index));
-  if (!duplicate_strand) {
+  if (!index->bwt_config.duplicate_strand) {
     index->backward_rev = (bwt_index*) malloc(sizeof(bwt_index));
     index->forward_rev  = (bwt_index*) malloc(sizeof(bwt_index));
   }
 
-  index->inverse_sa = inverse_sa;
+  index->bwt_config.inverse_sa = inverse_sa;
   index->dirname = strdup(dirname);
 
-  if (index->duplicate_strand) {
-    load_bwt_index(NULL, index->backward, dirname, 1, inverse_sa);
-    load_bwt_index(NULL, index->forward, dirname, 0, inverse_sa);
+  if (index->bwt_config.duplicate_strand) {
+    load_bwt_index(NULL, index->backward, dirname, 1, inverse_sa, index->bwt_config);
+    load_bwt_index(NULL, index->forward, dirname, 0, inverse_sa, index->bwt_config);
   } else {
-    load_bwt_index(index->backward_rev, index->backward, dirname, 1, inverse_sa);
-    load_bwt_index(index->forward_rev, index->forward, dirname, 0, inverse_sa);
+    load_bwt_index(index->backward_rev, index->backward, dirname, 1, inverse_sa, index->bwt_config);
+    load_bwt_index(index->forward_rev, index->forward, dirname, 0, inverse_sa, index->bwt_config);
   }
 
   load_exome_file(&index->karyotype, dirname);
@@ -756,12 +636,12 @@ void bwt_index_free(bwt_index_t *index) {
 
   free(index->dirname);
 
-  if (index->duplicate_strand) {
-    free_bwt_index(NULL, index->backward, index->inverse_sa);
-    free_bwt_index(NULL, index->forward, index->inverse_sa);
+  if (index->bwt_config.duplicate_strand) {
+    free_bwt_index(NULL, index->backward, index->bwt_config.inverse_sa);
+    free_bwt_index(NULL, index->forward, index->bwt_config.inverse_sa);
   } else {
-    free_bwt_index(index->backward_rev, index->backward, index->inverse_sa);
-    free_bwt_index(index->forward_rev, index->forward, index->inverse_sa);
+    free_bwt_index(index->backward_rev, index->backward, index->bwt_config.inverse_sa);
+    free_bwt_index(index->forward_rev, index->forward, index->bwt_config.inverse_sa);
   }
 
   free(index->backward);
@@ -784,20 +664,17 @@ void bwt_generate_index_files(char *ref_file, char *output_dir,
   comp_vector S, R, Si, Ri;
   exome ex;
   bwt_config_t bwt_config;
-  //ex.chromosome = (char *) calloc(INDEX_EXOME*IDMAX, sizeof(char));
-  //ex.start = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
-  //ex.end = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
-  //ex.offset = (unsigned int *) calloc(INDEX_EXOME, sizeof(unsigned int));
   
-  //initReplaceTable_bs(NULL);
-  save_config(bases, duplice_strand, output_dir);
+  save_config(bases, duplicate_strand, output_dir);
 
-  stcpy(bwt_config.nucleotides, bases);
-  bwt_init_replace_table(&bwt_config);
+  bwt_config.nucleotides = (char *) malloc ( strlen(bases) * sizeof(char));
 
+  strcpy(bwt_config.nucleotides, bases);
+  bwt_config.duplicate_strand = duplicate_strand;
+  bwt_init_replace_table(bwt_config);
 
   // Calculating BWT
-  encode_reference(&X, &ex, duplicate_strand, ref_file);
+  encode_reference(&X, &ex, ref_file, bwt_config);
   save_ref_vector(&X, output_dir, "X");
   save_exome_file(&ex, duplicate_strand, output_dir);
   print_vector(X.vector, X.n);
@@ -807,13 +684,13 @@ void bwt_generate_index_files(char *ref_file, char *output_dir,
   read_ref_vector(&B, output_dir, "B");
   print_vector(B.vector, B.n);
 
-  calculate_C(&C, &C1, &B);
+  calculate_C(&C, &C1, &B, bwt_config.nA);
   print_vector(C.vector, C.n);
   print_vector(C1.vector, C1.n);
   save_vector(&C, output_dir, "C");
   save_vector(&C1,output_dir, "C1");
 
-  calculate_O(&O, &B);
+  calculate_O(&O, &B, bwt_config.nA);
   print_comp_matrix(O);
   save_comp_matrix(&O, output_dir, "O");
 
@@ -838,7 +715,7 @@ void bwt_generate_index_files(char *ref_file, char *output_dir,
   read_ref_vector(&Bi, output_dir, "Bi");
   print_vector(Bi.vector, Bi.n);
 
-  calculate_O(&Oi, &Bi);
+  calculate_O(&Oi, &Bi, bwt_config.nA);
   print_comp_matrix(Oi);
   save_comp_matrix(&Oi, output_dir, "Oi");
 
@@ -1270,6 +1147,7 @@ size_t bwt_map_exact_seed(uint8_t *seq, size_t seq_len,
   int actual_mappings = 0;
   struct timeval t_start, t_end;
   //*limit_exceeded = 0;
+
   for (short int type = 1; type >= 0; type--) {
     result.k = 0;
     result.l = size_SA(index->backward) - 1;
@@ -1281,24 +1159,13 @@ size_t bwt_map_exact_seed(uint8_t *seq, size_t seq_len,
       aux_seq_start = seq_start;
       aux_seq_end = seq_end;
       result.pos = end;	
-      //start_timer(t_start);
-      //printf("Search back...\n");
       BWExactSearchBackward(code_seq, index->backward, &result);
-      //printf("End search back\n");
-      //BWExactSearchBackward(code_seq, start, end, &index->h_C, &index->h_C1, &index->h_O, result_p);
-      //stop_timer(t_start, t_end, time_bwt_seed);
     } else {
       // strand -
       aux_seq_start = seq_len - seq_end - 1;
       aux_seq_end = seq_len - seq_start - 1;
-      //printf("Translate coords %i-%i(id %i)\n", aux_seq_start, aux_seq_end, id);
-      result.pos = start;      
-      //start_timer(t_start);
-      //printf("Search forw...\n");
+      result.pos = start;
       BWExactSearchForward(code_seq, index->backward_rev, &result);
-      //printf("End Search forw\n");
-      //BWExactSearchForward(code_seq, start, end, &index->h_rC, &index->h_rC1, &index->h_rO, result_p);
-      //stop_timer(t_start, t_end, time_bwt_seed);
     }
     //printf("Search end\n");
     //start_timer(t_start);
@@ -1309,15 +1176,12 @@ size_t bwt_map_exact_seed(uint8_t *seq, size_t seq_len,
     actual_mappings += (result.l - result.k + 1);
 
     if (actual_mappings > bwt_optarg->filter_seed_mappings) {
-      //discard_seed = 1;
       //printf("Limit exceded LIMIT = %i, MAP = %i\n", bwt_optarg->filter_seed_mappings, actual_mappings);
       continue;
-      k_aux = result.k;
-      l_aux = result.k + 10;      
-      //limit_exceeded = 1;
-      break;
+      //k_aux = result.k;
+      //l_aux = result.k + 10; 
+      //break;
     } else {
-	//printf("\tk=%d - l=%d\n", r->k, r->l);      
       k_aux = result.k;
       l_aux = result.l;
     }
@@ -1340,20 +1204,8 @@ size_t bwt_map_exact_seed(uint8_t *seq, size_t seq_len,
 	num_mappings++;
       }
     }
-    //printf("results end\n");
-    //stop_timer(t_start, t_end, time_search_seed);
   }
-  //  free(result_p);
-  /*
-  if (discard_seed) {
-    array_list_clear(mappings, region_bwt_free);
-  } else {
-    for (int i = num_mappings - 1; i >= 0; i--) {
-      region = array_list_remove_at(i, mappings);
-      array_list_insert(region, mapping_list);
-    }
-  }
-  */
+
   array_list_free(mappings, NULL);
 
   return num_mappings;  
@@ -1508,14 +1360,15 @@ size_t bwt_map_inexact_seed(char *code_seq, size_t seq_len,
     if (type == 1) {
       bound_result(&res, seq_start, seq_end);
       change_result(&res, 0, size_SA(index->backward)-1, 0);
-      BWSearch1CPU(code_seq, index->backward, index->forward, &res, &r_list);
+      BWSearch1CPU(code_seq, index->backward, index->forward, &res, &r_list, index->bwt_config.nA);
 
       aux_seq_start = seq_start;
       aux_seq_end = seq_end;
     } else {
       bound_result(&res, seq_start, seq_end);
       change_result(&res, 0, size_SA(index->backward)-1, 0);
-      BWSearch1CPU(code_seq, index->forward_rev, index->backward_rev, &res, &r_list);
+      BWSearch1CPU(code_seq, index->forward_rev, 
+		   index->backward_rev, &res, &r_list, index->bwt_config.nA);
 
       aux_seq_start = seq_len - seq_end - 1;
       aux_seq_end = seq_len - seq_start - 1;
@@ -1676,14 +1529,15 @@ size_t bwt_map_inexact_seed_by_region(char *code_seq, size_t seq_len,
      if (type == 1) {
       bound_result(&res, seq_start, seq_end);
       change_result(&res, 0, size_SA(index->backward)-1, 0);
-      BWSearch1CPU(code_seq, index->backward, index->forward, &res, &r_list);
+      BWSearch1CPU(code_seq, index->backward, index->forward, &res, &r_list, index->bwt_config.nA);
 
       aux_seq_start = seq_start;
       aux_seq_end = seq_end;
     } else {
       bound_result(&res, seq_start, seq_end);
       change_result(&res, 0, size_SA(index->backward)-1, 0);
-      BWSearch1CPU(code_seq, index->forward_rev, index->backward_rev, &res, &r_list);
+      BWSearch1CPU(code_seq, index->forward_rev, 
+		   index->backward_rev, &res, &r_list, index->bwt_config.nA);
 
       aux_seq_start = seq_len - seq_end - 1;
       aux_seq_end = seq_len - seq_start - 1;
@@ -1975,11 +1829,13 @@ size_t __bwt_map_inexact_read(fastq_read_t *read,
 
 	  //    printf("*** bwt.c: calling BWSearch1 with type = %d...\n", type);
 	  if (type == 1) {
-	       BWSearch1GPUHelper(code_seq, start, end, k1, l1, ki1, li1, 
-			 index->backward, index->forward, &r_list);
+	       BWSearch1VectorHelper(code_seq, start, end, k1, l1, ki1, li1, 
+				     index->backward, index->forward, 
+				     &r_list, index->bwt_config.nA);
 	  } else {
-	       BWSearch1GPUHelper(code_seq, start, end, ki0, li0, k0, l0, 
-			 index->forward_rev, index->backward_rev, &r_list);      
+	       BWSearch1VectorHelper(code_seq, start, end, ki0, li0, k0, l0, 
+			 index->forward_rev, index->backward_rev, 
+				     &r_list, index->bwt_config.nA);      
 	       if (r_list.num_results) {
 		    seq_reverse_complementary(seq_strand, len);
 	       }
@@ -3433,7 +3289,7 @@ size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg,
 
   for (unsigned int i = 0; i < nstrands; i++) {
     for (unsigned int j = 0; j < nchromosomes; j++) {
-      linked_list_free(cals_list[i][j], short_cal_free);
+      linked_list_free(cals_list[i][j], (void *)short_cal_free);
     }
     free(cals_list[i]);
   }
@@ -3609,7 +3465,7 @@ size_t bwt_generate_cals_between_coords(int strand_target, int chromosome_target
 
   for (unsigned int i = 0; i < nstrands; i++) {
     for (unsigned int j = 0; j < nchromosomes; j++) {
-      linked_list_free(cals_list[i][j], short_cal_free);
+      linked_list_free(cals_list[i][j], (void *)short_cal_free);
     }
     free(cals_list[i]);
   }
@@ -4771,7 +4627,7 @@ size_t bwt_find_cals_from_read(fastq_read_t *read,
 }
 
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_find_cals_from_seqs(char **seqs, 
 			       size_t num_reads,
 			       bwt_optarg_t *bwt_optarg, 
@@ -4851,9 +4707,9 @@ size_t bwt_find_cals_from_seqs(char **seqs,
     return total_cals;
 
 }
-
+*/
 //-----------------------------------------------------------------------------
-
+/*
 size_t bwt_find_cals_from_batch(fastq_batch_t *batch,
 				bwt_optarg_t *bwt_optarg, 
 				bwt_index_t *index, 
@@ -4953,7 +4809,7 @@ size_t bwt_find_cals_from_batch(fastq_batch_t *batch,
   return total_cals;
   
 }
-
+*/
 //-----------------------------------------------------------------------------
 size_t bwt_generate_cal_list_linkedlist(array_list_t *mapping_list,
 					cal_optarg_t *cal_optarg,

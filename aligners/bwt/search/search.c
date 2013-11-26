@@ -113,7 +113,7 @@ bool BWExactFinalResultsForward(uint8_t *W, bwt_index *index, results_list *rl_p
 
 }
 
-bool BWBranchFinalResultsBackward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_final, int16_t block_size, int16_t last_block) {
+bool BWBranchFinalResultsBackward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_final, int16_t block_size, int16_t last_block, uint8_t nA) {
 
 	intmax_t k, l, k_aux, l_aux;
 	int16_t start, pos, last_err_pos, r_num_mismatches;
@@ -291,7 +291,7 @@ bool BWBranchFinalResultsBackward(uint8_t *W, bwt_index *index, results_list *rl
 
 }
 
-bool BWBranchFinalResultsForward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_final, int16_t block_size, int16_t last_block) {
+bool BWBranchFinalResultsForward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_final, int16_t block_size, int16_t last_block, uint8_t nA) {
 
 	intmax_t k, l, k_aux, l_aux;
 	int16_t end, pos, last_err_pos, r_num_mismatches;
@@ -645,7 +645,7 @@ bool BWExactPartialResultsForward(uint8_t *W, uint8_t *D, uint8_t max_errors, bw
 
 }
 
-bool BWBranchPartialResultsBackward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_next) {
+bool BWBranchPartialResultsBackward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_next, uint8_t nA) {
 
 	intmax_t k, l, k_aux, l_aux;
 	int16_t start, pos, last_err_pos, r_num_mismatches;
@@ -821,7 +821,7 @@ bool BWBranchPartialResultsBackward(uint8_t *W, bwt_index *index, results_list *
 
 }
 
-bool BWBranchPartialResultsForward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_next) {
+bool BWBranchPartialResultsForward(uint8_t *W, bwt_index *index, results_list *rl_prev, results_list *rl_next, uint8_t nA) {
 
 	intmax_t k, l, k_aux, l_aux;
 	int16_t end, pos=0, last_err_pos, r_num_mismatches;
@@ -1168,7 +1168,7 @@ void calculateDForward(uint8_t *D, uint8_t *W, uint64_t nW, bwt_index *backward,
 
 }
 
-bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, int16_t fragsize, bool type) {
+bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, int16_t fragsize, bool type, uint8_t nA) {
 
 	result r;
 
@@ -1235,18 +1235,18 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 				BWChangeDirectionForward(forward, backward, rl_prev_i, 0);
 				if (BWExactPartialResultsBackward(W, D, fragments-1, backward, rl_prev_i, rl_next_i, rl_final, fragsize, half-1)) {flow = false; break;}
 				if (err_count==1) break;
-				if (BWBranchPartialResultsForward(W, forward, rl_next, rl_prev)) {flow = false; break;}
-				if (BWBranchPartialResultsBackward(W, backward, rl_next_i, rl_prev_i)) {flow = false; break;}
+				if (BWBranchPartialResultsForward(W, forward, rl_next, rl_prev, nA)) {flow = false; break;}
+				if (BWBranchPartialResultsBackward(W, backward, rl_next_i, rl_prev_i, nA)) {flow = false; break;}
 				err_count--;
 
 			}
 
 			if (flow) {
-				BWBranchFinalResultsForward(W, forward, rl_next, rl_prev_i, fragsize, half-1);
+				BWBranchFinalResultsForward(W, forward, rl_next, rl_prev_i, fragsize, half-1, nA);
 				BWChangeDirectionForward(forward, backward, rl_prev_i, 0);
 				BWExactFinalResultsBackward(W, backward, rl_prev_i, rl_final, fragsize, half-1);
 
-				BWBranchFinalResultsBackward(W, backward, rl_next_i, rl_final, fragsize, half-1);
+				BWBranchFinalResultsBackward(W, backward, rl_next_i, rl_final, fragsize, half-1, nA);
 			}
 
 		}
@@ -1278,12 +1278,12 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 		while (err_count > 0) {
 			if (BWExactPartialResultsForward(W, D, fragments-1, forward, rl_prev, rl_next, rl_final, fragsize, half-1)) {flow = false; break;}
 			if (err_count==1) break;
-			if (BWBranchPartialResultsForward(W, forward, rl_next, rl_prev)) {flow = false; break;}
+			if (BWBranchPartialResultsForward(W, forward, rl_next, rl_prev, nA)) {flow = false; break;}
 			err_count--;
 		}
 
 		if (flow) {
-			BWBranchFinalResultsForward(W, forward, rl_next, rl_final, fragsize, half-1);
+			BWBranchFinalResultsForward(W, forward, rl_next, rl_final, fragsize, half-1, nA);
 		}
 
 	}
@@ -1316,17 +1316,17 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 				BWChangeDirectionBackward(backward, forward, rl_prev_i, nW-1);
 				if (BWExactPartialResultsForward(W, D, fragments-1, forward, rl_prev_i, rl_next_i, rl_final, fragsize, 0)) {flow = false; break;}
 				if (err_count==1) break;
-				if (BWBranchPartialResultsBackward(W, backward, rl_next, rl_prev)) {flow = false; break;}
-				if (BWBranchPartialResultsForward(W, forward, rl_next_i, rl_prev_i)) {flow = false; break;}
+				if (BWBranchPartialResultsBackward(W, backward, rl_next, rl_prev, nA)) {flow = false; break;}
+				if (BWBranchPartialResultsForward(W, forward, rl_next_i, rl_prev_i, nA)) {flow = false; break;}
 				err_count--;
 			}
 
 			if (flow) {
-				BWBranchFinalResultsBackward(W, backward, rl_next, rl_prev_i, fragsize, 0);
+				BWBranchFinalResultsBackward(W, backward, rl_next, rl_prev_i, fragsize, 0, nA);
 				BWChangeDirectionBackward(backward, forward, rl_prev_i, nW-1);
 				BWExactFinalResultsForward(W, forward, rl_prev_i, rl_final, fragsize, 0);
 
-				BWBranchFinalResultsForward(W, forward, rl_next_i, rl_final, fragsize, 0);
+				BWBranchFinalResultsForward(W, forward, rl_next_i, rl_final, fragsize, 0, nA);
 			}
 
 		}
@@ -1358,12 +1358,12 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 		while (err_count > 0) {
 			if (BWExactPartialResultsBackward(W, D, fragments-1, backward, rl_prev, rl_next, rl_final, fragsize, 0)) {flow = false; break;}
 			if(err_count==1) break;
-			if (BWBranchPartialResultsBackward(W, backward, rl_next, rl_prev)) {flow = false; break;}
+			if (BWBranchPartialResultsBackward(W, backward, rl_next, rl_prev, nA)) {flow = false; break;}
 			err_count--;
 		}
 
 		if (flow) {
-			BWBranchFinalResultsBackward(W, backward, rl_next, rl_final, fragsize, 0);
+			BWBranchFinalResultsBackward(W, backward, rl_next, rl_final, fragsize, 0, nA);
 		}
 
 	}
@@ -1372,73 +1372,91 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 
 }
 
-void BWExactSearchVectorBackward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index) {
+int16_t BWExactSearchVectorBackward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index) {
 
-	if (k > l)       return;
-	if (start > end) return;
+  int16_t last_good = 0;
 
-	intmax_t k2, l2;
-	int16_t last, i, j;
+  if (k > l)       return 0;
+  if (start > end) return 0;
 
-	last = end-start;
+  intmax_t k2, l2;
+  int16_t last, i, j;
 
-	k2 = k;
-	l2 = l;
+  last = end-start;
 
-	for(i=end, j=last; i>=start; i--, j--) {
+  k2 = k;
+  l2 = l;
 
-		BWiteration(k2, l2, k2, l2, W[i], index);
+  //printf("B -> %d -> %lu - %lu\n", i, k2, l2);
 
-		vec_k[j] = k2;
-		vec_l[j] = l2;
+  for(i=end, j=last; i>=start; i--, j--) {
 
-		if (k2 > l2) {
-			i--; j--;
-			break;
-		}
+    BWiteration(k2, l2, k2, l2, W[i], index);
+    //printf("B -> %d -> %lu - %lu\n", i, k2, l2);
 
-	}
+    vec_k[j] = k2;
+    vec_l[j] = l2;
 
-	for(;i>=start; i--, j--) {
-		vec_k[j] = k2;
-		vec_l[j] = l2;
-	}
+    if (k2 > l2) {
+      i--; j--;
+      break;
+    }
 
-}
+    last_good++;
 
-void BWExactSearchVectorForward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index) {
+  }
 
-	if (k > l) return;
-	if (start > end) return;
+  for(;i>=start; i--, j--) {
+    vec_k[j] = k2;
+    vec_l[j] = l2;
+  }
 
-	intmax_t k2, l2;
-	int16_t i, j;
-
-	k2 = k;
-	l2 = l;
-
-	for(i=start, j=0; i<=end; i++, j++) {
-
-		BWiteration(k2, l2, k2, l2, W[i], index);
-
-		vec_k[j] = k2;
-		vec_l[j] = l2;
-
-		if (k2 > l2) {
-			i++; j++;
-			break;
-		}
-
-	}
-
-	for(; i<=end; i++, j++) {
-		vec_k[j] = k2;
-		vec_l[j] = l2;
-	}
+  return last_good;
 
 }
 
-bool BWSearch1GPUHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec_k, intmax_t *vec_l, intmax_t *vec_ki, intmax_t *vec_li, bwt_index *backward, bwt_index *forward, results_list *r_list) {
+int16_t BWExactSearchVectorForward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index) {
+
+  int16_t last_good = 0;
+
+  if (k > l)       return 0;
+  if (start > end) return 0;
+
+  intmax_t k2, l2;
+  int16_t i, j;
+
+  k2 = k;
+  l2 = l;
+
+  //printf("F -> %d -> %lu - %lu\n", i, k2, l2);
+
+  for(i=start, j=0; i<=end; i++, j++) {
+
+    BWiteration(k2, l2, k2, l2, W[i], index);
+    //printf("F -> %d -> %lu - %lu\n", i, k2, l2);
+
+    vec_k[j] = k2;
+    vec_l[j] = l2;
+
+    if (k2 > l2) {
+      i++; j++;
+      break;
+    }
+
+    last_good++;
+
+  }
+
+  for(; i<=end; i++, j++) {
+    vec_k[j] = k2;
+    vec_l[j] = l2;
+  }
+
+  return last_good;
+
+}
+
+bool BWSearch1VectorHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec_k, intmax_t *vec_l, intmax_t *vec_ki, intmax_t *vec_li, bwt_index *backward, bwt_index *forward, results_list *r_list, uint8_t nA) {
 
 	intmax_t _k, _l, _ki, _li, _k_aux, _l_aux, _ki_aux, _li_aux;
 	intmax_t results, results_last;
@@ -1658,7 +1676,7 @@ bool BWSearch1GPUHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec_k,
 
 }
 
-bool BWSimpleSearch1Backward(uint8_t *W, bwt_index *index, result *res, results_list *r_list) {
+bool BWSimpleSearch1Backward(uint8_t *W, bwt_index *index, result *res, results_list *r_list, uint8_t nA) {
 
 	intmax_t _k,_l, _k_next, _l_next, _k_aux, _l_aux;
 	intmax_t results, results_next;
@@ -1742,7 +1760,7 @@ bool BWSimpleSearch1Backward(uint8_t *W, bwt_index *index, result *res, results_
 
 }
 
-bool BWSimpleSearch1Forward(uint8_t *W, bwt_index *index, result *res, results_list *r_list) {
+bool BWSimpleSearch1Forward(uint8_t *W, bwt_index *index, result *res, results_list *r_list, uint8_t nA) {
 
 	intmax_t _k, _l, _k_next, _l_next, _k_aux, _l_aux;
 	intmax_t results, results_next;
@@ -1823,7 +1841,7 @@ bool BWSimpleSearch1Forward(uint8_t *W, bwt_index *index, result *res, results_l
 
 }
 
-bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list) {
+bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list, uint8_t nA) {
 
 	int16_t start, end, half, n;;
 	intmax_t _k, _l;
@@ -1848,7 +1866,7 @@ bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *r
 	if (r.k <= r.l) {
 		r.start = start;
 		r.pos = half-1;
-		BWSimpleSearch1Backward(W, backward, &r, r_list);
+		BWSimpleSearch1Backward(W, backward, &r, r_list, nA);
 
 		if (r.k <= r.l) add_result(&r, r_list); //Match
 	}
@@ -1863,7 +1881,7 @@ bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *r
 	if (r.k <= r.l) {
 		r.pos = half+1;
 		r.end = end;
-		BWSimpleSearch1Forward(W, forward, &r, r_list);
+		BWSimpleSearch1Forward(W, forward, &r, r_list, nA);
 	}
 
 	return false;

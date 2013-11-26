@@ -47,7 +47,7 @@ typedef struct {
 #define get_SA(m, index) (index)->csa.lookup(&((index)->csa), (m))
 #define get_ISA(m, index) (index)->csa.inverse(&((index)->csa), (m))
 
-inline void load_bwt_index(bwt_index *index_rev, bwt_index *index, const char *directory, int direction, bool inverse_sa) {
+inline void load_bwt_index(bwt_index *index_rev, bwt_index *index, const char *directory, int direction, bool inverse_sa, bwt_config_t config) {
 
 	char *fname[2];
 
@@ -85,7 +85,7 @@ inline void free_bwt_index(bwt_index *index_rev, bwt_index *index) {
 #define get_SA(m, index) getScompValue((m), &((index)->S), &((index)->C), &((index)->O))
 #define get_ISA(m, index) getRcompValue((m), &((index)->R), &((index)->C), &((index)->O))
 
-inline void load_bwt_index(bwt_index *index_rev, bwt_index *index, const char *directory, int direction, bool inverse_sa) {
+inline void load_bwt_index(bwt_index *index_rev, bwt_index *index, const char *directory, int direction, bool inverse_sa, bwt_config_t config) {
 
 	if (direction) {
 	  read_vector(&(index->C),      directory, "C");
@@ -102,8 +102,8 @@ inline void load_bwt_index(bwt_index *index_rev, bwt_index *index, const char *d
 	}
 	
 	if (index_rev != NULL) {
-	  reverse_strand_C(&(index_rev->C), &(index->C), &(index_rev->C1), &(index->C1));
-	  reverse_strand_O(&(index_rev->O), &(index->O));
+	  reverse_strand_C(&(index_rev->C), &(index->C), &(index_rev->C1), &(index->C1), config);
+	  reverse_strand_O(&(index_rev->O), &(index->O), config);
 	  
 	  index_rev->S.vector = index->S.vector;
 	  index_rev->S.siz = index->S.siz;

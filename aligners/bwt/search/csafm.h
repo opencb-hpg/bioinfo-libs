@@ -80,8 +80,8 @@ typedef struct {
 
 } comp_vector;
 
-void reverse_strand_C(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1);
-void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O);
+void reverse_strand_C(vector *r_C, vector *s_C, vector *r_C1, vector *s_C1, bwt_config_t config);
+void reverse_strand_O(comp_matrix *r_O, comp_matrix *s_O, bwt_config_t config);
 
 void read_vector(vector *vector, const char *directory, const char *name);
 void read_comp_vector(comp_vector *vector, const char *directory, const char *name);

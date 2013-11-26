@@ -6,6 +6,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #define MAXLINE      1000
 #define MAXLINECOMP  250
@@ -15,6 +16,19 @@
 #define DELETION  1
 #define MISMATCH  2
 #define INSERTION 3
+
+typedef struct bwt_config {
+  bool inverse_sa;
+  bool duplicate_strand;
+
+  uint8_t nA;
+  uint8_t AA, CC, GG, TT;
+
+  uint8_t *table;
+  char *rev_table;
+  char *reverse;
+  char *nucleotides;
+} bwt_config_t;
 
 #ifndef min
 #define min(x,y) (((x)<(y))?(x):(y))
@@ -27,31 +41,31 @@
 #define check_syntax(argc, n, params)\
   if ((argc)!=(n)) {\
     fprintf(stderr, "Syntax:\n\t%s\n", (params));\
-    exit(1);\
+    exit(EXIT_FAILURE);\
   }
 
 #define check_malloc(D, path)\
   if ((D)==NULL) {\
     fprintf(stderr, "Data structure " #D " in %s is too large\n", (path));\
-    exit(1);\
+    exit(EXIT_FAILURE);\
   }
 
 #define check_file_open(fp, path)\
   if (!(fp)) {\
     fprintf(stderr, "Error opening file: %s\n", (path));\
-    exit(1);\
+    exit(EXIT_FAILURE);\
   }
 
 #define check_file_read(err, nmemb, path)\
   if ((err) != (nmemb)) {\
     fprintf(stderr, "Error reading file '%s'\n", (path));\
-    exit(1);\
+    exit(EXIT_FAILURE);\
   }
 
 #define check_file_write(err, nmemb, path)\
   if ((err) != (nmemb)) {\
     fprintf(stderr, "Error writing file '%s'\n", (path));\
-    exit(1);\
+    exit(EXIT_FAILURE);\
   }
 
 #ifdef VERBOSE_DBG
@@ -98,17 +112,7 @@ extern size_t cur_alloc, max_alloc;
 
 //-----------------------------------------------------------------------------
 
-
-
-
-/**
- *  @brief Inits table for nucleotide coding/decoding 
- *  @return void
- * 
- *  Inits table[128] for nucleotide coding/decoding 
- */
-void init_table();
-void init_replace_table(const char *str);
+void bwt_init_replace_table(bwt_config_t config);
 
 /**
  *  @brief Encodes a sequence of plain nucleotides
@@ -131,9 +135,8 @@ void encode_bases(uint8_t* dest, char* src, uintmax_t length, uint8_t *table);
 void decode_bases(char* dest, uint8_t* src, uintmax_t length, char *rev_table);
 
 void revstring(uint8_t *X, uintmax_t nX);
-void revstrand(uint8_t *X, uintmax_t nX);
+void revstrand(uint8_t *X, uintmax_t nX, char *reverse);
 
-void duplicate_reverse(uint8_t *X, uintmax_t nX);
-
+void duplicate_reverse(uint8_t *X, uintmax_t nX, char *reverse);
 
 #endif

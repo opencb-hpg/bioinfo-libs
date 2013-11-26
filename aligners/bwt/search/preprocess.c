@@ -5,73 +5,73 @@ void calculate_and_save_B(ref_vector *X, const char *directory, const char *name
 }
 
 void calculate_S_and_R(comp_vector *S, comp_vector *R, ref_vector *B, vector *C, comp_matrix *O, SA_TYPE ratio) {
+ 
+  SA_TYPE i,j;
+  uint8_t b_aux;
 
-	SA_TYPE i,j;
- 	uint8_t b_aux;
+  S->siz = B->n + 1;
+  R->siz = B->n + 1;
 
-	S->siz = B->n + 1;
-	R->siz = B->n + 1;
+  S->n = (S->siz / ratio);
+  R->n = (S->siz / ratio);
+  if (S->siz % ratio) {
+    S->n++; R->n++;
+  }
 
-	S->n = (S->siz / ratio);
-	R->n = (S->siz / ratio);
-	if (S->siz % ratio) {
-		S->n++;	R->n++;
-	}
+  S->ratio = ratio;
+  R->ratio = ratio;
 
-	S->ratio = ratio;
-	R->ratio = ratio;
+  S->vector = (SA_TYPE *) malloc(S->n * sizeof(SA_TYPE));
+  R->vector = (SA_TYPE *) malloc(R->n * sizeof(SA_TYPE));
 
-	S->vector = (SA_TYPE *) malloc(S->n * sizeof(SA_TYPE));
-	R->vector = (SA_TYPE *) malloc(R->n * sizeof(SA_TYPE));
+  if (B->dollar % S->ratio == 0) S->vector[B->dollar / S->ratio] = 0;	
+  R->vector[0] = B->dollar;
 
-	if (B->dollar % S->ratio == 0) S->vector[B->dollar / S->ratio] = 0;	
-	R->vector[0] = B->dollar;
-
-	for(j = S->siz-1, i = 0; j > 0; j--) {
+  for(j = S->siz-1, i = 0; j > 0; j--) {
 	
-		if (i % S->ratio == 0) S->vector[i / S->ratio] = j;
-		if (j % R->ratio == 0) R->vector[j / S->ratio] = i;
+    if (i % S->ratio == 0) S->vector[i / S->ratio] = j;
+    if (j % R->ratio == 0) R->vector[j / S->ratio] = i;
+	  
+    if (i > B->dollar) b_aux = B->vector[i-1];
+    else               b_aux = B->vector[i];
 
-		if (i > B->dollar) b_aux = B->vector[i-1];
-		else               b_aux = B->vector[i];
+    i = C->vector[b_aux] + get_O(b_aux, i+1/*0 is -1*/, O);
 
-		i = C->vector[b_aux] + get_O(b_aux, i+1/*0 is -1*/, O);
-
-	}
-
-}
-
-void calculate_C(vector *C, vector *C1, ref_vector *B) {
-
-	C->n  = nA;
-	C1->n = nA;
-
-	C->vector  = (SA_TYPE *) malloc(C->n  * sizeof(SA_TYPE));
-	C1->vector = (SA_TYPE *) malloc(C1->n * sizeof(SA_TYPE));
-
-	check_malloc(C->vector,  "calculateC");
-	check_malloc(C1->vector, "calculateC");
-
-	for (SA_TYPE i = 0; i < C->n; i++)
-		C->vector[i] = 0;
-
-	SA_TYPE dollar = 0;
-
-	for (SA_TYPE i = 0; i<=B->n; i++) {
-		if (i == B->dollar) {dollar = 1; continue;}
-		if (B->vector[i - dollar] + 1 == nA) continue;
-		C->vector[B->vector[i - dollar] + 1]++;
-	}
-
-	for (SA_TYPE i = 1; i < C->n; i++)
-		C->vector[i] += C->vector[i-1];
-
-	for (SA_TYPE i = 0; i < C->n; i++)
-		C1->vector[i] = C->vector[i] + 1;
+  }
 
 }
 
-void calculate_O(comp_matrix *O, ref_vector *B) {
+void calculate_C(vector *C, vector *C1, ref_vector *B, uint8_t nA) {
+
+  C->n  = nA;
+  C1->n = nA;
+
+  C->vector  = (SA_TYPE *) malloc(C->n  * sizeof(SA_TYPE));
+  C1->vector = (SA_TYPE *) malloc(C1->n * sizeof(SA_TYPE));
+
+  check_malloc(C->vector,  "calculateC");
+  check_malloc(C1->vector, "calculateC");
+
+  for (SA_TYPE i = 0; i < C->n; i++)
+    C->vector[i] = 0;
+
+  SA_TYPE dollar = 0;
+
+  for (SA_TYPE i = 0; i<=B->n; i++) {
+    if (i == B->dollar) {dollar = 1; continue;}
+    if (B->vector[i - dollar] + 1 == nA) continue;
+    C->vector[B->vector[i - dollar] + 1]++;
+  }
+
+  for (SA_TYPE i = 1; i < C->n; i++)
+    C->vector[i] += C->vector[i-1];
+
+  for (SA_TYPE i = 0; i < C->n; i++)
+    C1->vector[i] = C->vector[i] + 1;
+
+}
+
+void calculate_O(comp_matrix *O, ref_vector *B, uint8_t nA) {
 
 #if defined FM_COMP_32 || FM_COMP_64
 

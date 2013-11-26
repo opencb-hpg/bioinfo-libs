@@ -8,8 +8,8 @@
 #include "io.h"
 
 void calculate_and_save_B(ref_vector *X, const char *directory, const char *name);
-void calculate_C(vector *C, vector *C1, ref_vector *B);
-void calculate_O(comp_matrix *O, ref_vector *B);
+void calculate_C(vector *C, vector *C1, ref_vector *B, uint8_t nA);
+void calculate_O(comp_matrix *O, ref_vector *B, uint8_t nA);
 void calculate_S_and_R(comp_vector *S, comp_vector *R, ref_vector *B, vector *C, comp_matrix *O, SA_TYPE ratio);
 
 void compress_S_or_R(comp_vector *SRcomp, comp_vector *SR, SA_TYPE ratio);
