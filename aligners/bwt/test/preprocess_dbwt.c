@@ -21,20 +21,13 @@ int main(int argc, char **argv)
 
   uintmax_t ratio = atoi(argv[3]);
   int duplicate_strand = atoi(argv[4]);
-  puts("0");
   save_config(argv[5], duplicate_strand, argv[2]);
-  puts("1");
-  bwt_config.nucleotides = (char *) malloc ( strlen(argv[5]) * sizeof(char));
-  puts("2");
-  strcpy(bwt_config.nucleotides, argv[5]);
-  puts("3");
-  bwt_config.duplicate_strand = duplicate_strand;
-  puts("4");
-  bwt_init_replace_table(bwt_config);
-  puts("5");
-  printf("nA: %ju, %ju %ju %ju %ju, %ju %ju %ju %ju, %ju %ju %ju %ju, %c %c %c %c, %ju %ju %ju %ju\n", bwt_config.nA, bwt_config.AA, bwt_config.CC, bwt_config.GG, bwt_config.TT, bwt_config.table['a'], bwt_config.table['c'], bwt_config.table['g'], bwt_config.table['t'], bwt_config.table['A'], bwt_config.table['C'], bwt_config.table['G'], bwt_config.table['T'], bwt_config.rev_table[0], bwt_config.rev_table[1], bwt_config.rev_table[2], bwt_config.rev_table[3], bwt_config.reverse[0], bwt_config.reverse[1], bwt_config.reverse[2], bwt_config.reverse[3]);
+	bwt_config.duplicate_strand = duplicate_strand;
 
-  encode_reference(&X, &ex, argv[1], bwt_config);
+  bwt_init_replace_table(&bwt_config, argv[5]);
+
+	encode_reference(&X, &ex, argv[1], &bwt_config);
+
   save_ref_vector(&X, argv[2], "X");
   save_exome_file(&ex, duplicate_strand, argv[2]);
   print_vector(X.vector, X.n);
@@ -92,6 +85,8 @@ int main(int argc, char **argv)
   save_comp_vector(&Si, argv[2], "Si");
   save_comp_vector(&Ri, argv[2], "Ri");
   toc();
+
+  bwt_free_replace_table(&bwt_config);
 
   free(Bi.vector);
   free_comp_matrix(NULL, &Oi);

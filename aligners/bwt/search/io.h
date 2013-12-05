@@ -35,8 +35,8 @@ void save_exome_file(exome *ex, bool reverse, const char *directory);
 void save_config(char *nucleotide, bool duplicate_strand, const char *directory);
 void read_config(char *nucleotide, bool *duplicate_strand, const char *directory);
 
-void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config_t bwt_config);
-bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t *nquery, bwt_config_t bwt_config);
+void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config_t *bwt_config);
+bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t *nquery, bwt_config_t *bwt_config);
 
 inline uintmax_t binsearch(uintmax_t *array, uintmax_t size, uintmax_t key) {
 

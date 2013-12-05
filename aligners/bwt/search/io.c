@@ -68,9 +68,7 @@ void save_exome_file(exome *ex, bool reverse, const char *directory) {
 
 }
 
-void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config_t bwt_config) {
-
-  printf("nA: %ju, %ju %ju %ju %ju, %ju %ju %ju %ju, %ju %ju %ju %ju, %c %c %c %c, %ju %ju %ju %ju\n", bwt_config.nA, bwt_config.AA, bwt_config.CC, bwt_config.GG, bwt_config.TT, bwt_config.table['a'], bwt_config.table['c'], bwt_config.table['g'], bwt_config.table['t'], bwt_config.table['A'], bwt_config.table['C'], bwt_config.table['G'], bwt_config.table['T'], bwt_config.rev_table[0], bwt_config.rev_table[1], bwt_config.rev_table[2], bwt_config.rev_table[3], bwt_config.reverse[0], bwt_config.reverse[1], bwt_config.reverse[2], bwt_config.reverse[3]);
+void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config_t *bwt_config) {
 
   FILE *ref_file;
   ref_file = fopen(ref_path, "r");
@@ -82,7 +80,7 @@ void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config
   read = ftell(ref_file); //Valgrind errors on dbwt
   fseek(ref_file, 0, SEEK_SET);
 
-  if (bwt_config.duplicate_strand) size = read*2 + 1;
+  if (bwt_config->duplicate_strand) size = read*2 + 1;
   else         size = read   + 1;
 
   X->vector = (uint8_t *) malloc( size * sizeof(uint8_t) );
@@ -147,10 +145,10 @@ void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config
     ex->size++;
   }
 
-  encode_bases(X->vector, reference, total_length, bwt_config.table);
+  encode_bases(X->vector, reference, total_length, bwt_config->table);
 
-  if (bwt_config.duplicate_strand) {
-    duplicate_reverse(X->vector, total_length, bwt_config.reverse);
+  if (bwt_config->duplicate_strand) {
+    duplicate_reverse(X->vector, total_length, bwt_config->reverse);
     X->n = total_length * 2;
   } else {
     X->n = total_length;
@@ -163,26 +161,26 @@ void encode_reference(ref_vector *X, exome *ex, const char *ref_path, bwt_config
 
 }
 
-bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t *nquery, bwt_config_t bwt_config) {
+bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t *nquery, bwt_config_t *bwt_config) {
 
-  char line[MAXLINE];
+	char line[MAXLINE];
   size_t length=0;
 
-  *nquery=0;
+	*nquery=0;
   uncoded[0]='\0';
 
-  while ( fgets(line, MAXLINE, queries_file) ) {
+	while ( fgets(line, MAXLINE, queries_file) ) {
 
-    if (line[0] == '>') {
+		if (line[0] == '>') {
       if (*nquery) break;
       else continue;
     }
 
-    length=strlen(line);
+		length=strlen(line);
     if (line[length-1]=='\n')
       length--;
 
-    uncoded[*nquery] = '\0';
+		uncoded[*nquery] = '\0';
     strncpy(uncoded + *nquery, line , length);
 
     *nquery += length;
@@ -191,7 +189,7 @@ bool nextFASTAToken(FILE *queries_file, char *uncoded, uint8_t *coded, uintmax_t
 
   if (*nquery) {
 
-    encode_bases(coded, uncoded, *nquery, bwt_config.table);
+    encode_bases(coded, uncoded, *nquery, bwt_config->table);
 
     return true;
 
@@ -270,7 +268,6 @@ void save_ref_vector(ref_vector *vector, const char *directory, const char *name
 //==============================================================================
 
 void save_config(char *nucleotides, bool duplicate_strand, const char *directory) {
-  size_t err=0;
   FILE *fp;
 
   char path[500];
@@ -289,8 +286,6 @@ void save_config(char *nucleotides, bool duplicate_strand, const char *directory
   fclose(fp);
 }
 
-//-----------------------------------------------------------------------------
-
 void read_config(char *nucleotides, bool *duplicate_strand, const char *directory) {
 
   if (nucleotides == NULL) {
@@ -298,7 +293,6 @@ void read_config(char *nucleotides, bool *duplicate_strand, const char *director
     exit(EXIT_FAILURE);
   }
 
-  size_t err=0;
   FILE *fp;
   char path[500];
   char ds_str[32];
@@ -319,6 +313,5 @@ void read_config(char *nucleotides, bool *duplicate_strand, const char *director
   fclose(fp);
 
 }
-
 
 //==============================================================================

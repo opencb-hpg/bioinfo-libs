@@ -1168,9 +1168,9 @@ void calculateDForward(uint8_t *D, uint8_t *W, uint64_t nW, bwt_index *backward,
 
 }
 
-bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, int16_t fragsize, bool type, uint8_t nA) {
+bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, results_list *rl_anchor, int16_t fragsize, bool type, uint8_t nA) {
 
-	result r;
+        result r, r_anchor;
 
 	int16_t fragments = nW / fragsize;
 	int16_t half = fragments / 2;
@@ -1180,6 +1180,8 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 	bool flow;
 
 	uint8_t *D = (uint8_t *) malloc (nW * sizeof(uint8_t));
+	
+	if (rl_anchor != NULL) rl_anchor->num_results = 0;
 
 	//printf("\n***** Size: %d, Fragments: %d Errors: %d\n", nW, fragments, fragments-1);
 
@@ -1189,16 +1191,26 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 			init_result(&r, 1);
 			change_result(&r, 0, size_SA(forward)-1, 0);
 			bound_result(&r, 0, nW-1);
-			BWExactSearchForward(W, forward, &r);
+			if (rl_anchor != NULL) {
+			  BWExactSearchForward(W, forward, &r, &r_anchor);
+			  add_result(&r_anchor, rl_anchor);
+			} else {
+			  BWExactSearchForward(W, forward, &r, NULL);
+			}
 			if (r.k<=r.l)
 				add_result(&r, rl_final);
 		} else {
 			init_result(&r, 0);
 			change_result(&r, 0, size_SA(backward)-1, nW-1);
 			bound_result(&r, 0, nW-1);
-			BWExactSearchBackward(W, backward, &r);
+			if (rl_anchor != NULL) {
+			  BWExactSearchBackward(W, backward, &r, &r_anchor);
+			  add_result(&r_anchor, rl_anchor);
+			} else {
+			  BWExactSearchBackward(W, backward, &r, NULL);
+			}
 			if (r.k<=r.l)
-				add_result(&r, rl_final);
+			  add_result(&r, rl_final);
 		}
 
 		return false;
@@ -1220,7 +1232,12 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 		init_result(&r, 1);
 		change_result(&r, 0, size_SA(forward)-1, fragsize*i);
 		bound_result(&r, fragsize*i, fragsize*(i+1) - 1);
-		BWExactSearchForward(W, forward, &r);
+		if (rl_anchor != NULL) {
+		  BWExactSearchForward(W, forward, &r, &r_anchor);
+		  add_result(&r_anchor, rl_anchor);
+		} else {
+		  BWExactSearchForward(W, forward, &r, NULL);
+		}
 		r.end = nW-1;
 
 		if (r.k <= r.l) {
@@ -1266,7 +1283,12 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 	init_result(&r, 1);
 	change_result(&r, 0, size_SA(forward)-1, 0);
 	bound_result(&r, 0, fragsize - 1);
-	BWExactSearchForward(W, forward, &r);
+	if (rl_anchor!=NULL) {
+	  BWExactSearchForward(W, forward, &r, &r_anchor);
+	add_result(&r_anchor, rl_anchor);
+	} else {
+	  BWExactSearchForward(W, forward, &r, NULL);
+	}
 	r.end = nW-1;
 
 	if (r.k <= r.l) {
@@ -1302,7 +1324,12 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 		init_result(&r, 0);
 		change_result(&r, 0, size_SA(backward)-1, fragsize*(i+1) - 1);
 		bound_result(&r, fragsize*i, fragsize*(i+1) - 1);
-		BWExactSearchBackward(W, backward, &r);
+		if (rl_anchor != NULL) {
+		  BWExactSearchBackward(W, backward, &r, &r_anchor);
+		  add_result(&r_anchor, rl_anchor);
+		} else {
+		  BWExactSearchBackward(W, backward, &r, NULL);
+		}
 		r.start = 0;
 
 		if (r.k <= r.l) {
@@ -1346,7 +1373,12 @@ bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forwar
 	init_result(&r, 0);
 	change_result(&r, 0, size_SA(backward)-1, /*fragsize*fragments - 1 Last block is larger*/nW-1);
 	bound_result(&r, fragsize*(fragments-1), /*fragsize*fragments - 1 Last block is larger*/nW-1);
-	BWExactSearchBackward(W, backward, &r);
+	if (rl_anchor != NULL) {
+	  BWExactSearchBackward(W, backward, &r, &r_anchor);
+	  add_result(&r_anchor, rl_anchor);
+	} else {
+	  BWExactSearchBackward(W, backward, &r, NULL);
+	}
 	r.start = 0;
 
 	if (r.k <= r.l) {
@@ -1545,7 +1577,7 @@ bool BWSearch1VectorHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec
 		//Deletion
 		change_result(&r, _k, _l, i-2);
 		modify_last_mismatch3(&r, DELETION, -1, i-1);
-		BWExactSearchBackward(W, backward, &r);
+		BWExactSearchBackward(W, backward, &r, NULL);
 		if (r.k<=r.l) add_result(&r, r_list);
 
 		for (uint8_t b=0;b<nA;b++) {
@@ -1557,14 +1589,14 @@ bool BWSearch1VectorHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec
 			//Insertion
 			change_result(&r, _k_aux, _l_aux, i-1);
 			modify_last_mismatch2(&r, INSERTION, b);
-			BWExactSearchBackward(W, backward, &r);
+			BWExactSearchBackward(W, backward, &r, NULL);
 			if (r.k<=r.l) add_result(&r, r_list);
 
 			//Mismatch
 			if (b!=W[i-1]) {
 				change_result(&r, _k_aux, _l_aux, i-2);
 				modify_last_mismatch1(&r, MISMATCH);
-				BWExactSearchBackward(W, backward, &r);
+				BWExactSearchBackward(W, backward, &r, NULL);
 				if (r.k<=r.l) add_result(&r, r_list);
 			}
 
@@ -1641,7 +1673,7 @@ bool BWSearch1VectorHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec
 		//Deletion
 		change_result(&r, _ki, _li, i+2);
 		modify_last_mismatch3(&r, DELETION, -1, i+1);
-		BWExactSearchForward(W, forward, &r);
+		BWExactSearchForward(W, forward, &r, NULL);
 		if (r.k<=r.l) add_result(&r, r_list);
 
 		for (uint8_t b=0;b<nA;b++) {
@@ -1655,14 +1687,14 @@ bool BWSearch1VectorHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec
 			//Insertion
 			change_result(&r, _ki_aux, _li_aux, i+1);
 			modify_last_mismatch2(&r, INSERTION, b);
-			BWExactSearchForward(W, forward, &r);
+			BWExactSearchForward(W, forward, &r, NULL);
 			if (r.k<=r.l) add_result(&r, r_list);
 
 			//Mismatch
 			if (b!= W[i+1]) {
 				change_result(&r, _ki_aux, _li_aux, i+2);
 				modify_last_mismatch1(&r, MISMATCH);
-				BWExactSearchForward(W, forward, &r);
+				BWExactSearchForward(W, forward, &r, NULL);
 				if (r.k<=r.l) add_result(&r, r_list);
 			}
 
@@ -1716,7 +1748,7 @@ bool BWSimpleSearch1Backward(uint8_t *W, bwt_index *index, result *res, results_
 
 		//Deletion
 		change_result(&r, _k, _l, i-1);
-		BWExactSearchBackward(W, index, &r);
+		BWExactSearchBackward(W, index, &r, NULL);
 		if (r.k<=r.l) {
 			modify_last_mismatch3(&r, DELETION, -1, i);
 			add_result(&r, r_list);
@@ -1732,7 +1764,7 @@ bool BWSimpleSearch1Backward(uint8_t *W, bwt_index *index, result *res, results_
 
 			//Insertion
 			change_result(&r, _k_aux, _l_aux, i);
-			BWExactSearchBackward(W, index, &r);
+			BWExactSearchBackward(W, index, &r, NULL);
 			if (r.k<=r.l) {
 				modify_last_mismatch3(&r, INSERTION, b, i);
 				add_result(&r, r_list);
@@ -1741,7 +1773,7 @@ bool BWSimpleSearch1Backward(uint8_t *W, bwt_index *index, result *res, results_
 			//Mismatch
 			if (b!=(int)W[i]) {
 				change_result(&r, _k_aux, _l_aux, i-1);
-				BWExactSearchBackward(W, index, &r);
+				BWExactSearchBackward(W, index, &r, NULL);
 				if (r.k<=r.l) {
 					modify_last_mismatch3(&r, MISMATCH, b, i);
 					add_result(&r, r_list);
@@ -1798,7 +1830,7 @@ bool BWSimpleSearch1Forward(uint8_t *W, bwt_index *index, result *res, results_l
 
 		//Deletion
 		change_result(&r, _k, _l, i+1);
-		BWExactSearchForward(W, index, &r);
+		BWExactSearchForward(W, index, &r, NULL);
 		if (r.k<=r.l) {
 			modify_last_mismatch3(&r, DELETION, -1, i);
 			add_result(&r, r_list);
@@ -1814,7 +1846,7 @@ bool BWSimpleSearch1Forward(uint8_t *W, bwt_index *index, result *res, results_l
 
 			//Insertion
 			change_result(&r, _k_aux, _l_aux, i);
-			BWExactSearchForward(W, index, &r);
+			BWExactSearchForward(W, index, &r, NULL);
 			if (r.k<=r.l) {
 				modify_last_mismatch3(&r, INSERTION, b, i);
 				add_result(&r, r_list);
@@ -1823,7 +1855,7 @@ bool BWSimpleSearch1Forward(uint8_t *W, bwt_index *index, result *res, results_l
 			//Mismatch
 			if (b!=(int)W[i]) {
 				change_result(&r, _k_aux, _l_aux, i+1);
-				BWExactSearchForward(W, index, &r);
+				BWExactSearchForward(W, index, &r, NULL);
 				if (r.k<=r.l) {
 					modify_last_mismatch3(&r, MISMATCH, b, i);
 					add_result(&r, r_list);
@@ -1841,7 +1873,7 @@ bool BWSimpleSearch1Forward(uint8_t *W, bwt_index *index, result *res, results_l
 
 }
 
-bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list, uint8_t nA) {
+bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list, results_list *r_list_anchor, uint8_t nA) {
 
 	int16_t start, end, half, n;;
 	intmax_t _k, _l;
@@ -1855,13 +1887,19 @@ bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *r
 	n = end - start + 1;
 	half = n / 2;
 
-	result r;
+	result r, r_anchor;
 
 	init_result(&r, 0);
 	bound_result(&r, half, end);
 	change_result(&r, _k, _l, end);
 
-	BWExactSearchBackward(W, backward, &r);
+	if (r_list_anchor == NULL) {
+	  BWExactSearchBackward(W, backward, &r, NULL);
+	} else {
+	  r_list_anchor->num_results = 0; 
+	  BWExactSearchBackward(W, backward, &r, &r_anchor);
+	  add_result(&r_anchor, r_list_anchor);
+	}
 
 	if (r.k <= r.l) {
 		r.start = start;
@@ -1877,7 +1915,13 @@ bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *r
 	bound_result(&r, start, half);
 	change_result(&r, _k, _l, start);
 
-	BWExactSearchForward(W, forward, &r);
+	if (r_list_anchor == NULL) {
+	  BWExactSearchForward(W, forward, &r, NULL);
+	} else {
+	  BWExactSearchForward(W, forward, &r, &r_anchor);
+	  add_result(&r_anchor, r_list_anchor);
+	}
+
 	if (r.k <= r.l) {
 		r.pos = half+1;
 		r.end = end;

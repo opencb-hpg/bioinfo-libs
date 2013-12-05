@@ -11,9 +11,9 @@
 #define MAX_MISMATCHES 20
 
 typedef struct {
+	bool dir;                      //0 - Backward, 1 - Forward
 	intmax_t k, l;
 	int16_t start, pos, end;
-	bool dir;                      //0 - Backward, 1 - Forward
 	uint8_t num_mismatches;
 	uint8_t err_kind[MAX_MISMATCHES];
 	uint8_t err_base[MAX_MISMATCHES];
@@ -113,10 +113,10 @@ inline void concat_error_string(char *mask, char *mask_aux, result *r, uint8_t r
 		sprintf(mask_aux, "_%d%c",   r->err_pos[rr], 'd');
 		strcat(mask, mask_aux);
 	} else if (r->err_kind[rr]==MISMATCH) {
-		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'm', bwt_config->rev_table[r->err_base[rr]]);
+		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'm', bwt_config->nucleotides[r->err_base[rr]]);
 		strcat(mask, mask_aux);
 	} else {
-		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'i', bwt_config->rev_table[r->err_base[rr]]);
+		sprintf(mask_aux, "_%d%c%c", r->err_pos[rr], 'i', bwt_config->nucleotides[r->err_base[rr]]);
 		strcat(mask, mask_aux);
 	}
 

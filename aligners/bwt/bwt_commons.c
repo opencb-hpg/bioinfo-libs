@@ -55,39 +55,45 @@ void myfree(void *p, size_t s)
   cur_alloc -= s;
 }
 
-
 //-----------------------------------------------------------------------------
 
-void bwt_init_replace_table(bwt_config_t config) {
+void bwt_init_replace_table(bwt_config_t *config, char *nucleotides) {
   //printf("****Bases = %s\n", config->nucleotides);
   
-  if (config.nucleotides == NULL) {
+  if (nucleotides == NULL) {
     fprintf(stderr, "%s -> Nucleotides NULL\n", __func__);
     exit(EXIT_FAILURE);
   }
 
-  config.nA = strlen(config.nucleotides);
-  config.table      = (uint8_t *) malloc(128 * sizeof(uint8_t));
-  config.rev_table  = (char *) malloc(config.nA * sizeof(char));
-  config.reverse    = (char *) malloc(config.nA * sizeof(char));
+  config->nA          = strlen(nucleotides);
+  config->table       = (uint8_t *) malloc(128 * sizeof(uint8_t));
+  config->nucleotides = (char *) malloc(config->nA * sizeof(char));
+  config->reverse     = (char *) malloc(config->nA * sizeof(char));
 
-  for (int i = 0; i < config.nA; i++) {
-    config.rev_table[i] = toupper(config.nucleotides[i]);
+  for (int i = 0; i < config->nA; i++) {
 
-    config.table[toupper(config.nucleotides[i])] = i;
-    config.table[tolower(config.nucleotides[i])] = i;
+    config->nucleotides[i] = toupper(nucleotides[i]);
 
-    if      (toupper(config.nucleotides[i]) == 'A') config.AA = i;
-    else if (toupper(config.nucleotides[i]) == 'C') config.CC = i;
-    else if (toupper(config.nucleotides[i]) == 'G') config.GG = i;
-    else if (toupper(config.nucleotides[i]) == 'T') config.TT = i;
+    config->table[toupper(nucleotides[i])] = i;
+    config->table[tolower(nucleotides[i])] = i;
+
+    if      (toupper(nucleotides[i]) == 'A') config->AA = i;
+    else if (toupper(nucleotides[i]) == 'C') config->CC = i;
+    else if (toupper(nucleotides[i]) == 'G') config->GG = i;
+    else if (toupper(nucleotides[i]) == 'T') config->TT = i;
+
   }
 
-  config.reverse[config.AA] = config.TT;
-  config.reverse[config.CC] = config.GG;
-  config.reverse[config.GG] = config.CC;
-  config.reverse[config.TT] = config.AA;
+  config->reverse[config->AA] = config->TT;
+  config->reverse[config->CC] = config->GG;
+  config->reverse[config->GG] = config->CC;
+  config->reverse[config->TT] = config->AA;
 
+}
+void bwt_free_replace_table(bwt_config_t *config) {
+  free(config->table);
+  free(config->nucleotides);
+  free(config->reverse);
 }
 
 void encode_bases(uint8_t* dest, char* src, uintmax_t length, uint8_t *table) {

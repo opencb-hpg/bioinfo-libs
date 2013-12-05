@@ -6,53 +6,61 @@
 #include "results.h"
 #include "runtime.h"
 
-inline void BWExactSearchBackward(uint8_t *W, bwt_index *index, result *r) {
+inline void BWExactSearchBackward(uint8_t *W, bwt_index *index, result *r, result *r_anchor) {
 
-	intmax_t k2, l2;
+        intmax_t k, l, k2, l2;
 	int16_t i;
-
+	
 	k2 = r->k;
 	l2 = r->l;
-
+	
 	//printf("B1º -> %lu - %lu\n", k2, l2);
 
 	for(i=r->pos; i>=r->start; i--) {
-
 	  BWiteration(k2, l2, k2, l2, W[i], index);
 	  //printf("B -> %d -> %lu - %lu\n", i, k2, l2);
 	  if (k2 > l2) break;
 
+	  k = k2; 
+	  l = l2;
 	}
 
-	r->k = k2;
-	r->l = l2;
+	if (r_anchor != NULL) {
+	  init_result(r_anchor, 0);
+	  bound_result(r_anchor, i + 1, r->pos);
+	  change_result(r_anchor, k, l, i);
+	}
 
-	r->pos = i;
+	change_result(r, k2, l2, i);
 
 }
 
-inline void BWExactSearchForward(uint8_t *W, bwt_index *index, result *r) {
+inline void BWExactSearchForward(uint8_t *W, bwt_index *index, result *r, result *r_anchor) {
 
-	intmax_t k2, l2;
+        intmax_t k, l, k2, l2;
 	int16_t i;
 
 	k2 = r->k;
 	l2 = r->l;
 
 	//printf("F1º-> %d -> %lu - %lu\n", i, k2, l2);
-
 	for(i=r->pos; i<=r->end; i++) {
 
 	  BWiteration(k2, l2, k2, l2, W[i], index);
 	  //printf("F-> %d -> %lu - %lu\n", i, k2, l2);
 	  if (k2 > l2) break;
-	  
+
+	  k = k2; 
+	  l = l2;
 	}
 
-	r->k = k2;
-	r->l = l2;
+	if (r_anchor != NULL) {
+	  init_result(r_anchor, 1);
+	  bound_result(r_anchor, r->pos, i - 1);
+	  change_result(r_anchor, k, l, i);
+	}
 
-	r->pos = i;
+	change_result(r, k2, l2, i);
 
 }
 
@@ -189,13 +197,13 @@ inline void change_direction(bwt_index *backward, bwt_index *forward, result *re
 
 }
 
-bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, int16_t fragsize, bool type, uint8_t nA);
+bool BWSearchCPU(uint8_t *W, uint64_t nW, bwt_index *backward, bwt_index *forward, results_list *rl_prev, results_list *rl_next, results_list *rl_prev_i, results_list *rl_next_i, results_list *rl_final, results_list *rl_anchor, int16_t fragsize, bool type, uint8_t nA);
 
 int16_t BWExactSearchVectorBackward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index);
 int16_t BWExactSearchVectorForward(uint8_t *W, int16_t start, int16_t end, intmax_t k, intmax_t l, intmax_t *vec_k, intmax_t *vec_l, bwt_index *index);
 
 bool BWSearch1VectorHelper(uint8_t *W, int16_t start, int16_t end, intmax_t *vec_k, intmax_t *vec_l, intmax_t *vec_ki, intmax_t *vec_li, bwt_index *backward, bwt_index *forward, results_list *r_list, uint8_t nA);
 
-bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list, uint8_t nA);
+bool BWSearch1CPU(uint8_t *W, bwt_index *backward, bwt_index *forward, result *res, results_list *r_list, results_list *r_list_anchor, uint8_t nA);
 
 #endif

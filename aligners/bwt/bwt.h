@@ -57,6 +57,8 @@ typedef struct cal_optarg {
   size_t seed_size;
   size_t min_seed_size;
   size_t num_errors;
+  size_t max_intron_size;
+  size_t min_intron_size;
 } cal_optarg_t;
 
 cal_optarg_t *cal_optarg_new(const size_t min_cal_size, 
@@ -65,7 +67,9 @@ cal_optarg_t *cal_optarg_new(const size_t min_cal_size,
 			     const size_t min_num_seeds_in_cal,
 			     const size_t seed_size,
 			     const size_t min_seed_size,
-			     const size_t num_errors);
+			     const size_t num_errors, 
+			     const size_t max_intron_size,
+			     const size_t min_intron_size);
 
 void cal_optarg_free(cal_optarg_t *optarg);
 
@@ -255,7 +259,7 @@ void read_cals_free(read_cals_t *read_cals);
 // general functions
 //-----------------------------------------------------------------------------
 
-alignment_t* add_optional_fields(alignment_t *alignment, size_t n_mappings);
+alignment_t* add_optional_fields(alignment_t *alignment, size_t n_mappings, int read_length);
 
 /**
  * @brief  Makes the reverse and complementary from the input sequence.
@@ -379,8 +383,12 @@ size_t bwt_map_exact_seeds_by_region(int start_position, int end_position,
 // cal functions
 //-----------------------------------------------------------------------------
 
-size_t bwt_generate_cals(char *seq, size_t seed_size, bwt_optarg_t *bwt_optarg, 
-			 bwt_index_t *index, array_list_t *cal_list);
+size_t bwt_generate_cals(char *seq, size_t seed_size, 
+			 bwt_optarg_t *bwt_optarg, 
+			 cal_optarg_t *cal_optarg,			
+			 bwt_index_t *index, 
+			 array_list_t *cal_list, 
+			 unsigned int nchromosomes);
 
 
 size_t bwt_generate_cals_bs(char *seq, char *seq2, size_t seed_size, bwt_optarg_t *bwt_optarg, 
@@ -489,6 +497,11 @@ size_t bwt_generate_cal_rna_list_linked_list(array_list_t *mapping_list,
                                              size_t nchromosomes,
                                              array_list_t *cal_list,
                                              size_t read_length);
+
+size_t bwt_map_inexact_read_2(fastq_read_t *read, 
+			      bwt_optarg_t *bwt_optarg, 
+			      bwt_index_t *index, 
+			      array_list_t *mapping_list);
 
 /*void append_seed_region_linked_list(linked_list_t* sr_list,
 				    size_t read_start, size_t read_end, 

@@ -17,17 +17,18 @@
 #define MISMATCH  2
 #define INSERTION 3
 
-typedef struct bwt_config {
-  bool inverse_sa;
-  bool duplicate_strand;
+typedef struct {
 
-  uint8_t nA;
+	uint8_t *table;
+  char *nucleotides;
+  char *reverse;
+
+	uint8_t nA;
   uint8_t AA, CC, GG, TT;
 
-  uint8_t *table;
-  char *rev_table;
-  char *reverse;
-  char *nucleotides;
+	bool inverse_sa;
+  bool duplicate_strand;
+
 } bwt_config_t;
 
 #ifndef min
@@ -112,8 +113,8 @@ extern size_t cur_alloc, max_alloc;
 
 //-----------------------------------------------------------------------------
 
-void bwt_init_replace_table(bwt_config_t config);
-
+void bwt_init_replace_table(bwt_config_t *config, char *nucleotides);
+void bwt_free_replace_table(bwt_config_t *config);
 /**
  *  @brief Encodes a sequence of plain nucleotides
  *  @param dest pointer to destination with encoded nucleotides

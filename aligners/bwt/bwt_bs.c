@@ -250,13 +250,13 @@ size_t bwt_map_exact_seed_bs(char *seq, size_t seq_len,
     result.pos = end;
     aux_seq_start = seq_start;
     aux_seq_end = seq_end;        
-    BWExactSearchBackward(code_seq, index->backward, &result);
+    BWExactSearchBackward(code_seq, index->backward, &result, NULL);
   } else {
     // strand -
     aux_seq_start = seq_len - seq_end - 1;
     aux_seq_end = seq_len - seq_start - 1;
     result.pos = start; 
-    BWExactSearchForward(code_seq, index->backward_rev, &result);
+    BWExactSearchForward(code_seq, index->backward_rev, &result, NULL);
   }
   
   //start_timer(t_start);
@@ -677,7 +677,7 @@ size_t __bwt_map_inexact_read_bs(fastq_read_t *read,
       //printf("header alig: %s\n", alig_1->query_name);
       bwt_cigar_cpy(alig_1, read->quality);
       //************************* OPTIONAL FIELDS ***************************//
-      alig_1 = add_optional_fields(alig_1, n_mappings);
+      alig_1 = add_optional_fields(alig_1, n_mappings, len);
       array_list_insert((void*) alig_1, mapping_list);
     }
   }
@@ -787,7 +787,7 @@ void bwt_map_inexact_array_list_by_filter_bs(array_list_t *reads,
 	bwt_cigar_cpy(alignment, fq_read->quality);
 	
 	//************************* OPTIONAL FIELDS ***************************//
-	alignment = add_optional_fields(alignment, num_mappings);
+	alignment = add_optional_fields(alignment, num_mappings, fq_read->length);
 	//*********************** OPTIONAL FIELDS END ************************//
       }
     } else if (array_list_get_flag(lists[i]) != 2) {

@@ -272,6 +272,7 @@ void *cpuSearch(void *threadid) {
 							&rl_prev_i,
 							&rl_next_i,
 							gpu_rl_final + i,
+							NULL,
 							aux_fragsize,
 							2,
 							bwt_config.nA
@@ -289,6 +290,7 @@ void *cpuSearch(void *threadid) {
 							&rl_prev_i,
 							&rl_next_i,
 							gpu_rl_final + i,
+							NULL,
 							aux_fragsize,
 							1,
 							bwt_config.nA
@@ -304,6 +306,7 @@ void *cpuSearch(void *threadid) {
 							&rl_prev_i,
 							&rl_next_i,
 							gpu_rl_final_r + i,
+							NULL,
 							aux_fragsize,
 							0,
 							bwt_config.nA
@@ -353,8 +356,10 @@ int main(int argc, char **argv) {
 
 	check_syntax(argc, 7, "inexact_search f_mappings d_transform f_output search_tree_size num_errors min_fragment");
 
-	read_config(bwt_config.nucleotides, &(bwt_config.duplicate_strand), argv[2]);
-	bwt_init_replace_table(bwt_config);
+
+	char *nucleotides = (char *) malloc(128 * sizeof(char));
+  read_config(nucleotides, &(bwt_config.duplicate_strand), argv[2]);
+  bwt_init_replace_table(&bwt_config, nucleotides);
 
 	RESULTS = atoi(argv[4]);
 	num_errors = atoi(argv[5]);
@@ -451,7 +456,7 @@ int main(int argc, char **argv) {
 
 		while (exit) {
 
-			exit = nextFASTAToken(queries_file, read_Worig + tam_read_gpu * MAXLINE, read_We + tam_read_gpu * MAXLINE, read_nWe + tam_read_gpu, bwt_config);
+			exit = nextFASTAToken(queries_file, read_Worig + tam_read_gpu * MAXLINE, read_We + tam_read_gpu * MAXLINE, read_nWe + tam_read_gpu, &bwt_config);
 
 			tam_read_gpu++;
 
@@ -533,6 +538,8 @@ int main(int argc, char **argv) {
 	  free_bwt_index(&backward_rev, &backward, true);
 	  free_bwt_index(&forward_rev, &forward,true);
 	}
+
+	bwt_free_replace_table(&bwt_config);
 
 	free(h_We);
 

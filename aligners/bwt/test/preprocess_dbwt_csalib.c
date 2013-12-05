@@ -18,13 +18,11 @@ int main(int argc, char **argv)
 	timevars();
 
 	int duplicate_strand = atoi(argv[3]);
-
 	save_config(argv[4], duplicate_strand, argv[2]);
-	strcpy(bwt_config.nucleotides, argv[4]);
-	bwt_config.duplicate_strand = duplicate_reverse;
-	bwt_init_replace_table(bwt_config);
+	bwt_config.duplicate_strand = duplicate_strand;
+	bwt_init_replace_table(&bwt_config, argv[4]);
 
-	encode_reference(&X, &ex, argv[1], bwt_config);
+	encode_reference(&X, &ex, argv[1], &bwt_config);
 	save_ref_vector(&X, argv[2], "X");
 	save_exome_file(&ex, duplicate_strand, argv[2]);
 
@@ -47,6 +45,8 @@ int main(int argc, char **argv)
 	tic("Calc. Forward Suffix Array -> CSALIB DNA");
 	csa_new_from_bwt_gnu_bwt_wrapper(argv[2], "forward");
 	toc();
+
+	bwt_free_replace_table(&bwt_config);
 
 	return 0;
 

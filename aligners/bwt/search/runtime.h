@@ -8,6 +8,8 @@
 #endif
 
 #include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
 
 typedef struct {
 
@@ -39,7 +41,7 @@ typedef struct {
 		(l_out) = (index)->C.vector[(b)] + get_O((b), (l_in)+1, &((index)->O));\
 	} while (0);
 #endif
-//printf("k-> %lu, l-> %lu, C -> %u, C1 -> %u\n", (k_out), (l_out), /*get_O((b), (k_in), &((index)->O)), get_O((b), (l_in)+1, &((index)->O)),*/ (index)->C.vector[(b)], (index)->C1.vector[(b)]); \
+//printf("k-> %lu, l-> %lu, C -> %u, C1 -> %u\n", (k_out), (l_out), get_O((b), (k_in), &((index)->O)), get_O((b), (l_in)+1, &((index)->O)), (index)->C.vector[(b)], (index)->C1.vector[(b)]);
 
 #if defined CSALIB_SEARCH
 
@@ -75,7 +77,7 @@ inline void load_bwt_index(bwt_index *index_rev, bwt_index *index, const char *d
 
 }
 
-inline void free_bwt_index(bwt_index *index_rev, bwt_index *index) {
+inline void free_bwt_index(bwt_index *index_rev, bwt_index *index, bool inverse_sa) {
 	
 }
 

@@ -6,7 +6,7 @@ bwt_test_env = aligners_env.Clone()
 
 #bwt_test_env['objects'] = []
 		      
-bwt_test_env['CFLAGS'] += ' -m64 -D_LARGEFILE64_SOURCE=1 -D_FILE_OFFSET_BITS=64 -O9 -fPIC -std=c99 -DFM_COMP_64' #-DCSALIB_SEARCH -msse4.2 -DVERBOSE_DBG
+bwt_test_env['CFLAGS'] += ' -g -Wall -m64 -D_LARGEFILE64_SOURCE=1 -D_FILE_OFFSET_BITS=64 -O9 -fPIC -std=c99 -DFM_COMP_64' #-DCSALIB_SEARCH -msse4.2 -DVERBOSE_DBG
 bwt_test_env['LINKFLAGS'] += ['-fopenmp']
 
 bwt_test_env['objects'].insert(0, 'preprocess_dbwt.c')

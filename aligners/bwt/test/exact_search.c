@@ -30,8 +30,9 @@ int main(int argc, char **argv) {
 
   timevars();
 
-  read_config(bwt_config.nucleotides, &(bwt_config.duplicate_strand), argv[2]);
-  bwt_init_replace_table(bwt_config);
+	char *nucleotides = (char *) malloc(128 * sizeof(char));
+  read_config(nucleotides, &(bwt_config.duplicate_strand), argv[2]);
+  bwt_init_replace_table(&bwt_config, nucleotides);
 
   queries_file = fopen(argv[1], "r");
   check_file_open(queries_file, argv[1]);
@@ -72,7 +73,7 @@ int main(int argc, char **argv) {
 
   tic("Sequence mapping");
 
-  while(nextFASTAToken(queries_file, Worig, W.vector, &nW_aux, bwt_config)) {
+  while(nextFASTAToken(queries_file, Worig, W.vector, &nW_aux, &bwt_config)) {
 
     if (!W.vector) {
       printf ("Error de lectura de la cadena a buscar\n");
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
     rl_next.read_index = read_index; rl_next_i.read_index = read_index;
     rl_final.read_index = read_index;
 
-    BWSearchCPU(W.vector, W.n, &backward, &forward, &rl_prev, &rl_next, &rl_prev_i, &rl_next_i, &rl_final, FRAGSIZE, 1, bwt_config.nA);
+    BWSearchCPU(W.vector, W.n, &backward, &forward, &rl_prev, &rl_next, &rl_prev_i, &rl_next_i, &rl_final, NULL, FRAGSIZE, 1, bwt_config.nA);
     write_results(&rl_final, k, l, &ex, &backward, &forward, Worig, nW_aux, 2, output_file, &bwt_config);
 
     rl_final.num_results=0;
@@ -97,6 +98,8 @@ int main(int argc, char **argv) {
   toc();
 
   printf("Memory frees\n");
+
+  bwt_free_replace_table(&bwt_config);
 
   free(W.vector);
   free(Worig);
